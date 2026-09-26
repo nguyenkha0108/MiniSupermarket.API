@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using MiniSupermarket.API.Models;
 
 namespace MiniSupermarket.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CategoriesController : ControllerBase
     {
         private static readonly List<Category> _categories = new()
@@ -45,15 +47,27 @@ namespace MiniSupermarket.API.Controllers
             }
         };
 
+
+        // =====================================================
+        // GET ALL
+        // Admin + Cashier đều được xem
         // GET: api/categories
+        // =====================================================
         [HttpGet]
+        [Authorize(Roles = "Admin,Cashier")]
         public IActionResult GetAll()
         {
             return Ok(_categories);
         }
 
+
+        // =====================================================
+        // GET BY ID
+        // Admin + Cashier đều được xem
         // GET: api/categories/1
+        // =====================================================
         [HttpGet("{id}")]
+        [Authorize(Roles = "Admin,Cashier")]
         public IActionResult GetById(int id)
         {
             var category = _categories
@@ -70,8 +84,14 @@ namespace MiniSupermarket.API.Controllers
             return Ok(category);
         }
 
+
+        // =====================================================
+        // SEARCH
+        // Admin + Cashier đều được tìm kiếm
         // GET: api/categories/search?keyword=banh
+        // =====================================================
         [HttpGet("search")]
+        [Authorize(Roles = "Admin,Cashier")]
         public IActionResult Search([FromQuery] string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
@@ -91,8 +111,14 @@ namespace MiniSupermarket.API.Controllers
             return Ok(result);
         }
 
+
+        // =====================================================
+        // CREATE
+        // CHỈ ADMIN
         // POST: api/categories
+        // =====================================================
         [HttpPost]
+        [Authorize(Roles = "Admin")]
         public IActionResult Create([FromBody] Category newCategory)
         {
             if (string.IsNullOrWhiteSpace(newCategory.CategoryName))
@@ -116,8 +142,14 @@ namespace MiniSupermarket.API.Controllers
                 newCategory);
         }
 
+
+        // =====================================================
+        // UPDATE
+        // CHỈ ADMIN
         // PUT: api/categories/1
+        // =====================================================
         [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Update(
             int id,
             [FromBody] Category updateCategory)
@@ -133,7 +165,8 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(updateCategory.CategoryName))
+            if (string.IsNullOrWhiteSpace(
+                updateCategory.CategoryName))
             {
                 return BadRequest(new
                 {
@@ -141,14 +174,23 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            category.CategoryName = updateCategory.CategoryName;
-            category.Description = updateCategory.Description;
+            category.CategoryName =
+                updateCategory.CategoryName;
+
+            category.Description =
+                updateCategory.Description;
 
             return NoContent();
         }
 
+
+        // =====================================================
+        // DELETE
+        // CHỈ ADMIN
         // DELETE: api/categories/1
+        // =====================================================
         [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
         public IActionResult Delete(int id)
         {
             var category = _categories
@@ -165,6 +207,53 @@ namespace MiniSupermarket.API.Controllers
             _categories.Remove(category);
 
             return NoContent();
+        }
+
+
+        // =====================================================
+        // ADMIN DASHBOARD
+        // CHỈ ADMIN
+        // GET: api/categories/admin-dashboard
+        // =====================================================
+        [HttpGet("admin-dashboard")]
+        [Authorize(Roles = "Admin")]
+        public IActionResult AdminDashboard()
+        {
+            return Ok(new
+            {
+                message = "Chào mừng Admin đến với Dashboard!",
+
+                totalCategories = _categories.Count,
+
+                categories = _categories.Select(c => new
+                {
+                    c.CategoryId,
+                    c.CategoryName,
+                    c.Description
+                })
+            });
+        }
+
+
+        // =====================================================
+        // STAFF POS
+        // ADMIN + CASHIER
+        // GET: api/categories/staff-pos
+        // =====================================================
+        [HttpGet("staff-pos")]
+        [Authorize(Roles = "Admin,Cashier")]
+        public IActionResult StaffPos()
+        {
+            return Ok(new
+            {
+                message = "Màn hình POS Thu ngân sẵn sàng phục vụ bán hàng.",
+
+                username = User.Identity?.Name,
+
+                role = User.FindFirst(
+                    System.Security.Claims.ClaimTypes.Role
+                )?.Value
+            });
         }
     }
 }

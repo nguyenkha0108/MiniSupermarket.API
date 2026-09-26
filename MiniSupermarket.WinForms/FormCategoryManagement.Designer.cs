@@ -57,6 +57,7 @@
             dgvCategories.Name = "dgvCategories";
             dgvCategories.Size = new Size(376, 286);
             dgvCategories.TabIndex = 0;
+            dgvCategories.CellContentClick += dgvCategories_CellClick;
             // 
             // txtId
             // 
@@ -128,6 +129,7 @@
             btnUpdate.TabIndex = 8;
             btnUpdate.Text = "Cập nhật";
             btnUpdate.UseVisualStyleBackColor = true;
+            btnUpdate.Click += btnUpdate_Click;
             // 
             // btnDelete
             // 
@@ -137,6 +139,7 @@
             btnDelete.TabIndex = 9;
             btnDelete.Text = "Xóa";
             btnDelete.UseVisualStyleBackColor = true;
+            btnDelete.Click += btnDelete_Click;
             // 
             // label4
             // 
