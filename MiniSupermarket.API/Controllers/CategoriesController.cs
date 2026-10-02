@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MiniSupermarket.API.Data;
 using MiniSupermarket.API.Models;
+using System.Security.Claims;
 
 namespace MiniSupermarket.API.Controllers
 {
@@ -9,44 +13,12 @@ namespace MiniSupermarket.API.Controllers
     [Authorize]
     public class CategoriesController : ControllerBase
     {
-        private static readonly List<Category> _categories = new()
+        private readonly SupermarketDbContext _context;
+
+        public CategoriesController(SupermarketDbContext context)
         {
-            new Category
-            {
-                CategoryId = 1,
-                CategoryName = "Bánh kẹo & Đồ ăn vặt",
-                Description = "Snack, bánh quy, kẹo dẻo"
-            },
-
-            new Category
-            {
-                CategoryId = 2,
-                CategoryName = "Nước giải khát & Trà",
-                Description = "Nước ngọt, nước khoáng, trà"
-            },
-
-            new Category
-            {
-                CategoryId = 3,
-                CategoryName = "Sữa & Sản phẩm từ sữa",
-                Description = "Sữa tươi, sữa chua, phô mai"
-            },
-
-            new Category
-            {
-                CategoryId = 4,
-                CategoryName = "Mì gói & Thực phẩm ăn liền",
-                Description = "Mì ăn liền, phở khô, cháo gói"
-            },
-
-            new Category
-            {
-                CategoryId = 5,
-                CategoryName = "Gia vị & Dầu ăn",
-                Description = "Nước mắm, hạt nêm, dầu thực vật"
-            }
-        };
-
+            _context = context;
+        }
 
         // =====================================================
         // GET ALL
@@ -55,23 +27,26 @@ namespace MiniSupermarket.API.Controllers
         // =====================================================
         [HttpGet]
         [Authorize(Roles = "Admin,Cashier")]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            return Ok(_categories);
-        }
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .ToListAsync();
 
+            return Ok(categories);
+        }
 
         // =====================================================
         // GET BY ID
-        // Admin + Cashier đều được xem
         // GET: api/categories/1
         // =====================================================
         [HttpGet("{id}")]
         [Authorize(Roles = "Admin,Cashier")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var category = _categories
-                .FirstOrDefault(c => c.CategoryId == id);
+            var category = await _context.Categories
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
 
             if (category == null)
             {
@@ -84,15 +59,14 @@ namespace MiniSupermarket.API.Controllers
             return Ok(category);
         }
 
-
         // =====================================================
         // SEARCH
-        // Admin + Cashier đều được tìm kiếm
         // GET: api/categories/search?keyword=banh
         // =====================================================
         [HttpGet("search")]
         [Authorize(Roles = "Admin,Cashier")]
-        public IActionResult Search([FromQuery] string keyword)
+        public async Task<IActionResult> Search(
+            [FromQuery] string keyword)
         {
             if (string.IsNullOrWhiteSpace(keyword))
             {
@@ -102,26 +76,27 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            var result = _categories
-                .Where(c => c.CategoryName.Contains(
-                    keyword,
-                    StringComparison.OrdinalIgnoreCase))
-                .ToList();
+            var result = await _context.Categories
+                .AsNoTracking()
+                .Where(c => c.CategoryName.Contains(keyword))
+                .ToListAsync();
 
             return Ok(result);
         }
-
 
         // =====================================================
         // CREATE
         // CHỈ ADMIN
         // POST: api/categories
         // =====================================================
+
+
         [HttpPost]
         [Authorize(Roles = "Admin")]
-        public IActionResult Create([FromBody] Category newCategory)
+        public async Task<IActionResult> Create(
+            [FromBody] CreateCategoryRequest request)
         {
-            if (string.IsNullOrWhiteSpace(newCategory.CategoryName))
+            if (string.IsNullOrWhiteSpace(request.CategoryName))
             {
                 return BadRequest(new
                 {
@@ -129,19 +104,20 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            newCategory.CategoryId =
-                _categories.Count > 0
-                    ? _categories.Max(c => c.CategoryId) + 1
-                    : 1;
+            var newCategory = new Category
+            {
+                CategoryName = request.CategoryName,
+                Description = request.Description
+            };
 
-            _categories.Add(newCategory);
+            _context.Categories.Add(newCategory);
+            await _context.SaveChangesAsync();
 
             return CreatedAtAction(
                 nameof(GetById),
                 new { id = newCategory.CategoryId },
                 newCategory);
         }
-
 
         // =====================================================
         // UPDATE
@@ -150,12 +126,12 @@ namespace MiniSupermarket.API.Controllers
         // =====================================================
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public IActionResult Update(
+        public async Task<IActionResult> Update(
             int id,
             [FromBody] Category updateCategory)
         {
-            var category = _categories
-                .FirstOrDefault(c => c.CategoryId == id);
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
 
             if (category == null)
             {
@@ -165,8 +141,7 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            if (string.IsNullOrWhiteSpace(
-                updateCategory.CategoryName))
+            if (string.IsNullOrWhiteSpace(updateCategory.CategoryName))
             {
                 return BadRequest(new
                 {
@@ -174,15 +149,13 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            category.CategoryName =
-                updateCategory.CategoryName;
+            category.CategoryName = updateCategory.CategoryName;
+            category.Description = updateCategory.Description;
 
-            category.Description =
-                updateCategory.Description;
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
-
 
         // =====================================================
         // DELETE
@@ -191,10 +164,10 @@ namespace MiniSupermarket.API.Controllers
         // =====================================================
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var category = _categories
-                .FirstOrDefault(c => c.CategoryId == id);
+            var category = await _context.Categories
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
 
             if (category == null)
             {
@@ -204,11 +177,11 @@ namespace MiniSupermarket.API.Controllers
                 });
             }
 
-            _categories.Remove(category);
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
 
             return NoContent();
         }
-
 
         // =====================================================
         // ADMIN DASHBOARD
@@ -217,23 +190,27 @@ namespace MiniSupermarket.API.Controllers
         // =====================================================
         [HttpGet("admin-dashboard")]
         [Authorize(Roles = "Admin")]
-        public IActionResult AdminDashboard()
+        public async Task<IActionResult> AdminDashboard()
         {
-            return Ok(new
-            {
-                message = "Chào mừng Admin đến với Dashboard!",
+            var totalCategories = await _context.Categories.CountAsync();
 
-                totalCategories = _categories.Count,
-
-                categories = _categories.Select(c => new
+            var categories = await _context.Categories
+                .AsNoTracking()
+                .Select(c => new
                 {
                     c.CategoryId,
                     c.CategoryName,
                     c.Description
                 })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                message = "Chào mừng Admin đến với Dashboard!",
+                totalCategories,
+                categories
             });
         }
-
 
         // =====================================================
         // STAFF POS
@@ -247,12 +224,8 @@ namespace MiniSupermarket.API.Controllers
             return Ok(new
             {
                 message = "Màn hình POS Thu ngân sẵn sàng phục vụ bán hàng.",
-
                 username = User.Identity?.Name,
-
-                role = User.FindFirst(
-                    System.Security.Claims.ClaimTypes.Role
-                )?.Value
+                role = User.FindFirst(ClaimTypes.Role)?.Value
             });
         }
     }
