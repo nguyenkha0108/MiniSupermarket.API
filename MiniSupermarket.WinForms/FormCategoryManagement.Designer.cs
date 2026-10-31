@@ -105,7 +105,7 @@ namespace MiniSupermarket.WinForms
             // 
             txtKeyword.Dock = DockStyle.Fill;
             txtKeyword.Location = new Point(2, 2);
-            txtKeyword.Margin = new Padding(2, 2, 2, 2);
+            txtKeyword.Margin = new Padding(2);
             txtKeyword.Name = "txtKeyword";
             txtKeyword.PlaceholderText = "Nhập tên nhóm hàng cần tìm...";
             txtKeyword.Size = new Size(835, 23);
@@ -250,7 +250,7 @@ namespace MiniSupermarket.WinForms
             groupBox2.Location = new Point(0, 0);
             groupBox2.Margin = new Padding(0, 0, 8, 0);
             groupBox2.Name = "groupBox2";
-            groupBox2.Padding = new Padding(8, 8, 8, 8);
+            groupBox2.Padding = new Padding(8);
             groupBox2.Size = new Size(707, 500);
             groupBox2.TabIndex = 0;
             groupBox2.TabStop = false;
@@ -298,7 +298,7 @@ namespace MiniSupermarket.WinForms
             mainLayout.Location = new Point(0, 0);
             mainLayout.Margin = new Padding(0);
             mainLayout.Name = "mainLayout";
-            mainLayout.Padding = new Padding(8, 8, 8, 8);
+            mainLayout.Padding = new Padding(8);
             mainLayout.RowCount = 3;
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82F));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));

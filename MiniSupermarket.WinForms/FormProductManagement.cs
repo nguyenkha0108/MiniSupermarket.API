@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Net.Http;
@@ -32,6 +33,7 @@ namespace MiniSupermarket.WinForms
 
         // ================= PHÂN TRANG =================
         private List<ProductDto> _allProducts = new();
+        private const int LowStockThreshold = 10; // Tồn kho <= 10 được tô màu cảnh báo
         private int _currentPage = 1;
         private int _pageSize = 10;
 
@@ -55,6 +57,7 @@ namespace MiniSupermarket.WinForms
         private Button btnAdd;
         private Button btnUpdate;
         private Button btnDelete;
+        private Button btnExportCsv = null!;
 
         public FormProductManagement()
         {
@@ -109,6 +112,9 @@ namespace MiniSupermarket.WinForms
             btnSearch.Click += btnSearch_Click;
             btnLoad.Click += btnLoad_Click;
 
+            btnExportCsv = new Button { Text = "Xuất CSV", Width = 130, Dock = DockStyle.Right, Margin = new Padding(8, 0, 0, 0), MinimumSize = new Size(120, 36) };
+            btnExportCsv.Click += btnExportCsv_Click;
+
             var pnlSearchBox = new Panel { Dock = DockStyle.Fill, Height = 36 };
             pnlSearchBox.Controls.Add(btnLoad);
             pnlSearchBox.Controls.Add(btnSearch);
@@ -116,6 +122,7 @@ namespace MiniSupermarket.WinForms
 
             pnlSearch.Controls.Add(pnlSearchBox);
             pnlSearch.Controls.Add(lblSearch);
+            pnlSearch.Controls.Add(btnExportCsv);
 
             // 3. Khung chi tiết bên phải (Panel Right)
             var pnlRight = new Panel
@@ -208,6 +215,7 @@ namespace MiniSupermarket.WinForms
             dgvProducts.Columns.Add(new DataGridViewTextBoxColumn { Name = "CategoryName", HeaderText = "Tên danh mục", DataPropertyName = "CategoryName", FillWeight = 100 });
 
             dgvProducts.CellClick += dgvProducts_CellClick;
+            dgvProducts.CellFormatting += dgvProducts_CellFormatting;
 
             var pnlCenter = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 5, 5, 0), BackColor = darkBackground };
             pnlCenter.Controls.Add(dgvProducts);
@@ -224,6 +232,7 @@ namespace MiniSupermarket.WinForms
             StyleActionButton(btnDelete, btnRed);
             StyleActionButton(btnLoad, accentColor);
             StyleActionButton(btnSearch, accentColor);
+            StyleActionButton(btnExportCsv, accentColor);
 
             Load += FormProductManagement_Load;
         }
@@ -513,6 +522,52 @@ namespace MiniSupermarket.WinForms
         {
             txtKeyword.Clear();
             await LoadProductsAsync();
+        }
+
+        // Cảnh báo hàng sắp hết: chỉ tô ô "Tồn kho" khi số lượng <= 10.
+        private void dgvProducts_CellFormatting(object? sender, DataGridViewCellFormattingEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+            if (dgvProducts.Columns[e.ColumnIndex].Name != "StockQuantity") return;
+            if (e.Value == null) return;
+
+            if (int.TryParse(Convert.ToString(e.Value), out int quantity) && quantity <= LowStockThreshold)
+            {
+                e.CellStyle.BackColor = Color.LightCoral;
+                e.CellStyle.ForeColor = Color.Black;
+            }
+        }
+
+        // Xuất toàn bộ danh mục (không chỉ trang hiện tại) ra CSV kèm tồn kho.
+        private void btnExportCsv_Click(object? sender, EventArgs e)
+        {
+            if (_allProducts.Count == 0)
+            {
+                MessageBox.Show("Chưa có dữ liệu sản phẩm để xuất.", "Xuất CSV",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            var rows = new List<IEnumerable<string>>
+            {
+                new[] { "Mã SP", "Mã vạch", "Tên sản phẩm", "Giá (VNĐ)", "Tồn kho", "Danh mục" }
+            };
+
+            rows.AddRange(_allProducts.Select(p => (IEnumerable<string>)new[]
+            {
+                p.ProductId.ToString(CultureInfo.InvariantCulture),
+                p.Barcode ?? string.Empty,
+                p.ProductName,
+                p.Price.ToString("0", CultureInfo.InvariantCulture),
+                p.StockQuantity.ToString(CultureInfo.InvariantCulture),
+                p.CategoryName ?? string.Empty
+            }));
+
+            if (CsvExport.SaveWithDialog(this, "danh-muc-san-pham.csv", rows))
+            {
+                MessageBox.Show($"Đã xuất {_allProducts.Count} sản phẩm ra file CSV.", "Xuất CSV",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
         }
 
         private void dgvProducts_CellClick(object sender, DataGridViewCellEventArgs e)

@@ -15,6 +15,7 @@ namespace MiniSupermarket.WinForms
         private readonly Label lblUserInfo = new();
         private readonly Dictionary<string, Button> menuButtons = new();
         private Form? activeChild;
+        private FormPOS? posScreen; // Giữ lại để không mất giỏ hàng khi chuyển menu
         private readonly FormLogin ownerLogin;
 
         // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI FORM LOGIN
@@ -39,6 +40,7 @@ namespace MiniSupermarket.WinForms
             FormClosed += (_, _) =>
             {
                 activeChild?.Dispose();
+                posScreen?.Dispose();
                 SessionManager.ClearSession();
                 ownerLogin.Show();
             };
@@ -104,7 +106,10 @@ namespace MiniSupermarket.WinForms
             footer.Controls.Add(btnLogout);
             panelSidebar.Controls.Add(footer);
 
-            // MENU CHỨC NĂNG - GIỮ NGUYÊN PHÂN QUYỀN
+            // MENU CHỨC NĂNG - TÍCH HỢP DASHBOARD VÀ PHÂN QUYỀN
+            AddMenu("Dashboard", "Trang chủ / Tổng quan",
+                "DASHBOARD TỔNG QUAN HỆ THỐNG", Roles("Admin", "Cashier", "Warehouse"));
+
             AddMenu("POS", "Bán hàng (POS)",
                 "BÁN HÀNG (POS)", Roles("Admin", "Cashier"));
 
@@ -115,16 +120,19 @@ namespace MiniSupermarket.WinForms
                 "QUẢN LÝ SẢN PHẨM & KHO HÀNG", Roles("Admin", "Warehouse"));
 
             AddMenu("Customer", "Quản lý khách hàng",
-                "QUẢN LÝ KHÁCH HÀNG", Roles("Admin", "Cashier"));
+                "QUẢN LÝ KHÁCH HÀNG", Roles("Admin"));
 
             AddMenu("Orders", "Quản lý đơn hàng",
-                "QUẢN LÝ ĐƠN HÀNG", Roles("Admin", "Cashier"));
+                "QUẢN LÝ ĐƠN HÀNG", Roles("Admin"));
 
             AddMenu("Reports", "Báo cáo doanh thu",
                 "BÁO CÁO DOANH THU", Roles("Admin"));
 
             AddMenu("Users", "Quản trị tài khoản",
                 "QUẢN TRỊ TÀI KHOẢN", Roles("Admin"));
+
+            // Đưa logo lên trên cùng của sidebar (sau khi các nút menu đã được thêm)
+            panelSidebar.Controls.SetChildIndex(logoPanel, panelSidebar.Controls.Count - 1);
 
             // 2. HEADER PHÍA TRÊN
             panelTopHeader.Dock = DockStyle.Top;
@@ -233,12 +241,8 @@ namespace MiniSupermarket.WinForms
 
         private void OpenDefaultScreen()
         {
-            string key = SessionManager.Role.ToUpperInvariant() switch
-            {
-                "CASHIER" => "POS",
-                "WAREHOUSE" => "Product",
-                _ => "Category"
-            };
+            // Mặc định tất cả các vai trò khi mở phần mềm đều vào trang Dashboard tổng quan trước
+            string key = "Dashboard";
 
             if (menuButtons.TryGetValue(key, out var button))
             {
@@ -250,11 +254,11 @@ namespace MiniSupermarket.WinForms
         {
             var allowed = key switch
             {
+                "Dashboard" => true,
                 "POS" => SessionManager.IsAdmin || SessionManager.IsCashier,
                 "Category" or "Product" =>
                     SessionManager.IsAdmin || SessionManager.IsWarehouse,
-                "Customer" or "Orders" =>
-                    SessionManager.IsAdmin || SessionManager.IsCashier,
+                "Customer" or "Orders" => SessionManager.IsAdmin,
                 "Reports" or "Users" => SessionManager.IsAdmin,
                 _ => false
             };
@@ -273,8 +277,14 @@ namespace MiniSupermarket.WinForms
             if (activeChild != null)
             {
                 panelMainContent.Controls.Remove(activeChild);
-                activeChild.Close();
-                activeChild.Dispose();
+
+                // Form POS không đóng/hủy để giữ nguyên giỏ hàng
+                if (activeChild is not FormPOS)
+                {
+                    activeChild.Close();
+                    activeChild.Dispose();
+                }
+
                 activeChild = null;
             }
 
@@ -291,7 +301,12 @@ namespace MiniSupermarket.WinForms
 
             lblTitle.Text = title;
 
-            if (key == "Category")
+            // XỬ LÝ GỌI FORM TƯƠNG ỨNG
+            if (key == "Dashboard")
+            {
+                ShowChild(new FormDashboard()); // Gọi Form Dashboard tổng quan chứa 4 thẻ KPI
+            }
+            else if (key == "Category")
             {
                 ShowChild(new FormCategoryManagement());
             }
@@ -317,7 +332,8 @@ namespace MiniSupermarket.WinForms
             }
             else if (key == "POS")
             {
-                ShowChild(new FormPOS());
+                posScreen ??= new FormPOS();
+                ShowChild(posScreen);
             }
             else
             {
@@ -328,6 +344,7 @@ namespace MiniSupermarket.WinForms
 
         private static string GetDescription(string key) => key switch
         {
+            "Dashboard" => "Trang tổng quan hệ thống quản lý bán hàng.",
             "POS" => "Khung giao diện quầy bán hàng.",
             "Product" => "Quản lý sản phẩm và tồn kho.",
             "Customer" => "Quản lý khách hàng thành viên và tích điểm.",

@@ -1,11 +1,8 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Data.SqlClient;
-using MiniSupermarket.API.Models;
 using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Linq;
 
 namespace MiniSupermarket.API.Controllers
 {
@@ -20,333 +17,182 @@ namespace MiniSupermarket.API.Controllers
             _configuration = configuration;
         }
 
-        // GET: api/Reports/revenue-by-cashier
-        [HttpGet("revenue-by-cashier")]
-        public IActionResult GetRevenueByCashier()
+        // 1. API cung cấp dữ liệu cho 4 thẻ KPI Dashboard
+        // GET: api/Reports/dashboard-summary
+        [HttpGet("dashboard-summary")]
+        public IActionResult GetDashboardSummary()
         {
-            var reports = new List<CashierRevenueDto>();
-
-            using var connection = new SqlConnection(
-                _configuration.GetConnectionString("DefaultConnection"));
-
-            using var command = new SqlCommand(
-                "sp_GetRevenueByCashier", connection)
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+            if (string.IsNullOrWhiteSpace(connectionString))
             {
-                CommandType = CommandType.StoredProcedure
-            };
+                return StatusCode(500, new { success = false, message = "Chưa cấu hình ConnectionString." });
+            }
 
             try
             {
+                using var connection = new SqlConnection(connectionString);
                 connection.Open();
 
-                using var reader = command.ExecuteReader();
-
-                while (reader.Read())
+                // Doanh thu hôm nay
+                decimal todayRevenue = 0m;
+                const string todayRevSql = @"
+                    SELECT COALESCE(SUM(FinalAmount), 0) 
+                    FROM Orders 
+                    WHERE CreatedDate >= CAST(GETDATE() AS DATE) 
+                      AND CreatedDate < DATEADD(day, 1, CAST(GETDATE() AS DATE));";
+                using (var cmd = new SqlCommand(todayRevSql, connection))
                 {
-                    reports.Add(new CashierRevenueDto
-                    {
-                        CashierUsername =
-                            Convert.ToString(reader["CashierUsername"]) ?? "",
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        todayRevenue = Convert.ToDecimal(result);
+                }
 
-                        TotalOrders =
-                            Convert.ToInt32(reader["TotalOrders"]),
+                // Tổng số hóa đơn
+                int totalInvoices = 0;
+                const string totalInvSql = "SELECT COUNT(*) FROM Orders;";
+                using (var cmd = new SqlCommand(totalInvSql, connection))
+                {
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        totalInvoices = Convert.ToInt32(result);
+                }
 
-                        TotalRevenue =
-                            reader["TotalRevenue"] == DBNull.Value
-                                ? 0m
-                                : Convert.ToDecimal(reader["TotalRevenue"]),
+                // Khách hàng mới (30 ngày gần đây tính theo đơn hàng)
+                int newCustomers30Days = 0;
+                const string newCustSql = @"
+                    SELECT COUNT(DISTINCT CustomerId) 
+                    FROM Orders 
+                    WHERE CreatedDate >= DATEADD(day, -30, GETDATE()) AND CustomerId IS NOT NULL;";
+                using (var cmd = new SqlCommand(newCustSql, connection))
+                {
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        newCustomers30Days = Convert.ToInt32(result);
+                }
 
-                        TotalPointsAwarded =
-                            reader["TotalPointsAwarded"] == DBNull.Value
-                                ? 0
-                                : Convert.ToInt32(
-                                    reader["TotalPointsAwarded"])
-                    });
+                // Sắp hết hàng (Tồn kho <= 10)
+                int lowStockProducts = 0;
+                const string lowStockSql = "SELECT COUNT(*) FROM Products WHERE StockQuantity <= 10;";
+                using (var cmd = new SqlCommand(lowStockSql, connection))
+                {
+                    var result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                        lowStockProducts = Convert.ToInt32(result);
                 }
 
                 return Ok(new
                 {
-                    success = true,
-                    generatedAt = DateTime.Now.ToString(
-                        "yyyy-MM-dd HH:mm:ss"),
-                    totalCashiers = reports.Count,
-                    grandTotalRevenue = reports.Sum(
-                        x => x.TotalRevenue),
-                    data = reports
+                    todayRevenue,
+                    totalInvoices,
+                    newCustomers30Days,
+                    lowStockProducts
                 });
             }
             catch (SqlException ex)
             {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message =
-                        "Lỗi thực thi Stored Procedure: " + ex.Message
-                });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
 
+        // 2. API cung cấp doanh thu theo ngày cho biểu đồ
+        // GET: api/Reports/daily-revenue?fromDate=2026-10-01&toDate=2026-10-31
+        [HttpGet("daily-revenue")]
+        public IActionResult GetDailyRevenue([FromQuery] DateTime fromDate, [FromQuery] DateTime toDate)
+        {
+            if (fromDate.Date > toDate.Date)
+            {
+                return BadRequest(new { message = "fromDate phải nhỏ hơn hoặc bằng toDate." });
+            }
+
+            var items = new List<object>();
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
+
+            try
+            {
+                using var connection = new SqlConnection(connectionString);
+                connection.Open();
+
+                const string sql = @"
+                    SELECT 
+                        CAST(CreatedDate AS DATE) AS OrderDate,
+                        COUNT(*) AS TotalOrders,
+                        SUM(FinalAmount) AS TotalRevenue
+                    FROM Orders
+                    WHERE CreatedDate >= @FromDate AND CreatedDate < @ToDate
+                    GROUP BY CAST(CreatedDate AS DATE)
+                    ORDER BY OrderDate ASC;";
+
+                using var command = new SqlCommand(sql, connection);
+                command.Parameters.Add("@FromDate", SqlDbType.DateTime).Value = fromDate.Date;
+                // Cộng thêm 1 ngày để bao trọn mốc thời gian kết thúc
+                command.Parameters.Add("@ToDate", SqlDbType.DateTime).Value = toDate.Date.AddDays(1);
+
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var dateVal = Convert.ToDateTime(reader["OrderDate"]);
+                    items.Add(new
+                    {
+                        date = dateVal.ToString("yyyy-MM-dd"),
+                        totalOrders = Convert.ToInt32(reader["TotalOrders"]),
+                        totalRevenue = Convert.ToDecimal(reader["TotalRevenue"])
+                    });
+                }
+
+                // Trả về đối tượng bọc có thuộc tính "Data" khớp với định dạng DailyRevenueResponse ở WinForms
+                return Ok(new { data = items });
+            }
+            catch (SqlException ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        // 3. API cung cấp Top 5 sản phẩm bán chạy cho bảng DataGridView
         // GET: api/Reports/top5-selling-products
         [HttpGet("top5-selling-products")]
         public IActionResult GetTop5SellingProducts()
         {
             var data = new List<object>();
-
-            using var connection = new SqlConnection(
-                _configuration.GetConnectionString("DefaultConnection"));
-
-            using var command = new SqlCommand(
-                "sp_GetTop5SellingProducts", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
+            string? connectionString = _configuration.GetConnectionString("DefaultConnection");
 
             try
             {
+                using var connection = new SqlConnection(connectionString);
                 connection.Open();
 
-                using var reader = command.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    data.Add(new
-                    {
-                        productId =
-                            Convert.ToInt32(reader["ProductId"]),
-
-                        barcode =
-                            Convert.ToString(reader["Barcode"]) ?? "",
-
-                        productName =
-                            Convert.ToString(reader["ProductName"]) ?? "",
-
-                        totalQuantitySold =
-                            Convert.ToInt32(reader["TotalQuantitySold"]),
-
-                        totalRevenue =
-                            reader["TotalRevenue"] == DBNull.Value
-                                ? 0m
-                                : Convert.ToDecimal(reader["TotalRevenue"])
-                    });
-                }
-
-                return Ok(new
-                {
-                    success = true,
-                    count = data.Count,
-                    data
-                });
-            }
-            catch (SqlException ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
-        // GET: api/Reports/revenue-by-date
-        // Ví dụ: api/Reports/revenue-by-date
-        //        ?fromDate=2026-10-01&toDate=2026-10-31
-        [HttpGet("revenue-by-date")]
-        public IActionResult GetRevenueByDate(
-            [FromQuery] DateTime fromDate,
-            [FromQuery] DateTime toDate)
-        {
-            if (fromDate.Date > toDate.Date)
-            {
-                return BadRequest(new
-                {
-                    message =
-                        "fromDate phải nhỏ hơn hoặc bằng toDate."
-                });
-            }
-
-            var data = new List<object>();
-
-            using var connection = new SqlConnection(
-                _configuration.GetConnectionString("DefaultConnection"));
-
-            using var command = new SqlCommand(
-                "sp_GetRevenueByDateRange", connection)
-            {
-                CommandType = CommandType.StoredProcedure
-            };
-
-            command.Parameters.Add("@FromDate", SqlDbType.DateTime)
-                .Value = fromDate.Date;
-
-            // Lấy toàn bộ ngày cuối, kể cả các giao dịch cuối ngày.
-            command.Parameters.Add("@ToDate", SqlDbType.DateTime)
-                .Value = toDate.Date.AddDays(1);
-
-            try
-            {
-                connection.Open();
-
-                using var reader = command.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    data.Add(new
-                    {
-                        cashierUsername =
-                            Convert.ToString(reader["CashierUsername"]) ?? "",
-
-                        totalOrders =
-                            Convert.ToInt32(reader["TotalOrders"]),
-
-                        totalRevenue =
-                            reader["TotalRevenue"] == DBNull.Value
-                                ? 0m
-                                : Convert.ToDecimal(reader["TotalRevenue"])
-                    });
-                }
-
-                return Ok(new
-                {
-                    success = true,
-                    fromDate = fromDate.Date.ToString("yyyy-MM-dd"),
-                    toDate = toDate.Date.ToString("yyyy-MM-dd"),
-                    totalCashiers = data.Count,
-                    data
-                });
-            }
-            catch (SqlException ex)
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
-        // GET: api/Reports/quick-report?date=2026-10-24
-        // Dùng cho FormQuickReport.cs
-        [HttpGet("quick-report")]
-        public IActionResult GetQuickReport(
-            [FromQuery] DateTime date)
-        {
-            DateTime startDate = date.Date;
-            DateTime endDate = startDate.AddDays(1);
-
-            string? connectionString =
-                _configuration.GetConnectionString("DefaultConnection");
-
-            if (string.IsNullOrWhiteSpace(connectionString))
-            {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message =
-                        "Chưa cấu hình ConnectionStrings:DefaultConnection."
-                });
-            }
-
-            try
-            {
-                using var connection =
-                    new SqlConnection(connectionString);
-
-                connection.Open();
-
-                int totalOrders;
-                decimal totalRevenue;
-
-                // Thống kê số hóa đơn và tổng doanh thu.
-                const string summarySql = @"
-                    SELECT
-                        COUNT(*) AS TotalOrders,
-                        COALESCE(SUM(FinalAmount), 0) AS TotalRevenue
-                    FROM Orders
-                    WHERE CreatedDate >= @StartDate
-                      AND CreatedDate < @EndDate;";
-
-                using (var command = new SqlCommand(
-                    summarySql, connection))
-                {
-                    command.Parameters.Add(
-                        "@StartDate", SqlDbType.DateTime).Value = startDate;
-
-                    command.Parameters.Add(
-                        "@EndDate", SqlDbType.DateTime).Value = endDate;
-
-                    using var reader = command.ExecuteReader();
-
-                    if (!reader.Read())
-                    {
-                        totalOrders = 0;
-                        totalRevenue = 0m;
-                    }
-                    else
-                    {
-                        totalOrders =
-                            Convert.ToInt32(reader["TotalOrders"]);
-
-                        totalRevenue =
-                            Convert.ToDecimal(reader["TotalRevenue"]);
-                    }
-                }
-
-                // Tìm sản phẩm bán chạy theo số lượng.
-                string bestSeller = "Chưa có dữ liệu";
-
-                const string bestSellerSql = @"
-                    SELECT TOP 1
+                const string sql = @"
+                    SELECT TOP 5
+                        p.ProductId,
+                        p.Barcode,
                         p.ProductName,
-                        SUM(od.Quantity) AS TotalQuantity
-                    FROM Orders o
-                    INNER JOIN OrderDetails od
-                        ON o.OrderId = od.OrderId
-                    INNER JOIN Products p
-                        ON od.ProductId = p.ProductId
-                    WHERE o.CreatedDate >= @StartDate
-                      AND o.CreatedDate < @EndDate
-                    GROUP BY p.ProductId, p.ProductName
-                    ORDER BY SUM(od.Quantity) DESC, p.ProductName ASC;";
+                        SUM(od.Quantity) AS TotalQuantitySold,
+                        SUM(od.Quantity * od.UnitPrice) AS TotalRevenue
+                    FROM OrderDetails od
+                    INNER JOIN Products p ON od.ProductId = p.ProductId
+                    GROUP BY p.ProductId, p.Barcode, p.ProductName
+                    ORDER BY TotalQuantitySold DESC;";
 
-                using (var command = new SqlCommand(
-                    bestSellerSql, connection))
+                using var command = new SqlCommand(sql, connection);
+                using var reader = command.ExecuteReader();
+
+                while (reader.Read())
                 {
-                    command.Parameters.Add(
-                        "@StartDate", SqlDbType.DateTime).Value = startDate;
-
-                    command.Parameters.Add(
-                        "@EndDate", SqlDbType.DateTime).Value = endDate;
-
-                    using var reader = command.ExecuteReader();
-
-                    if (reader.Read())
+                    data.Add(new
                     {
-                        bestSeller =
-                            Convert.ToString(reader["ProductName"])
-                            ?? "Chưa có dữ liệu";
-
-                        bestSeller +=
-                            $" ({Convert.ToInt32(reader["TotalQuantity"])} sản phẩm)";
-                    }
+                        productId = Convert.ToInt32(reader["ProductId"]),
+                        barcode = Convert.ToString(reader["Barcode"]) ?? "",
+                        productName = Convert.ToString(reader["ProductName"]) ?? "",
+                        totalQuantitySold = Convert.ToInt32(reader["TotalQuantitySold"]),
+                        totalRevenue = reader["TotalRevenue"] == DBNull.Value ? 0m : Convert.ToDecimal(reader["TotalRevenue"])
+                    });
                 }
 
-                return Ok(new
-                {
-                    success = true,
-                    date = startDate.ToString("yyyy-MM-dd"),
-                    totalOrders,
-                    totalRevenue,
-                    bestSeller
-                });
+                return Ok(new { data });
             }
             catch (SqlException ex)
             {
-                return StatusCode(500, new
-                {
-                    success = false,
-                    message =
-                        "Lỗi truy vấn báo cáo doanh thu: " + ex.Message
-                });
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
     }
