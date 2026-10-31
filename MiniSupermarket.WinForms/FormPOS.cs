@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -21,11 +20,16 @@ namespace MiniSupermarket.WinForms
             BaseAddress = new Uri("https://localhost:7044/api/")
         };
 
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
-        private readonly Color green = Color.FromArgb(22, 163, 74);
-        private readonly Color red = Color.FromArgb(220, 38, 38);
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/panel)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color accentHover = Color.FromArgb(147, 51, 234);    // Tím đậm khi hover
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+        private readonly Color btnGreen = Color.FromArgb(22, 163, 74);        // Xanh lá (Thêm/Thanh toán)
+        private readonly Color btnRed = Color.FromArgb(220, 38, 38);          // Đỏ (Xóa)
 
         private TextBox txtSearch = null!;
         private DataGridView gridProducts = null!;
@@ -61,7 +65,8 @@ namespace MiniSupermarket.WinForms
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(1000, 650);
             Size = new Size(1150, 760);
-            BackColor = background;
+            BackColor = darkBackground;
+            ForeColor = textLight;
             Font = new Font("Segoe UI", 10F);
             AutoScaleMode = AutoScaleMode.Font;
 
@@ -70,17 +75,17 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 4,
-                Padding = new Padding(14),
-                BackColor = background
+                Padding = new Padding(15),
+                BackColor = darkBackground
             };
 
             layout.ColumnStyles.Add(
                 new ColumnStyle(SizeType.Percent, 100));
 
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 105));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 110));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
             layout.RowStyles.Add(new RowStyle(SizeType.Percent, 50));
-            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 92));
+            layout.RowStyles.Add(new RowStyle(SizeType.Absolute, 95));
 
             // HEADER
             var header = new TableLayoutPanel
@@ -88,7 +93,7 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
                 RowCount = 2,
-                BackColor = background,
+                BackColor = darkBackground,
                 Margin = new Padding(0, 0, 0, 8)
             };
 
@@ -97,25 +102,24 @@ namespace MiniSupermarket.WinForms
             header.ColumnStyles.Add(
                 new ColumnStyle(SizeType.Percent, 42));
 
-            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 42));
+            header.RowStyles.Add(new RowStyle(SizeType.Absolute, 45));
             header.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
 
             var lblTitle = new Label
             {
-                Text = "KhaMiniMart",
+                Text = "⚡ KHA MINI MART — POS",
                 Dock = DockStyle.Fill,
-                Font = new Font("Segoe UI", 20F, FontStyle.Bold),
-                ForeColor = blue,
+                Font = new Font("Segoe UI", 18F, FontStyle.Bold),
+                ForeColor = accentColor,
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
             lblUser = new Label
             {
-                Text = $"Nhân viên: {SessionManager.Username} | " +
-                       $"Quyền: {SessionManager.Role}",
+                Text = $"Nhân viên: {SessionManager.Username}    |    Quyền: {SessionManager.Role}",
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 9.5F),
-                ForeColor = navy,
+                ForeColor = textMuted,
                 TextAlign = ContentAlignment.MiddleRight,
                 AutoEllipsis = true
             };
@@ -131,18 +135,18 @@ namespace MiniSupermarket.WinForms
             searchPanel.ColumnStyles.Add(
                 new ColumnStyle(SizeType.Percent, 100));
             searchPanel.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Absolute, 145));
+                new ColumnStyle(SizeType.Absolute, 155));
 
             txtSearch = new TextBox
             {
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 11F),
                 PlaceholderText = "Quét mã vạch hoặc nhập tên sản phẩm",
-                Margin = new Padding(0, 3, 8, 3)
+                Margin = new Padding(0, 3, 8, 3),
+                BackColor = inputBackground,
+                ForeColor = textLight
             };
 
-            // Máy quét mã vạch thường hoạt động như bàn phím
-            // và gửi Enter sau khi quét.
             txtSearch.KeyDown += async (s, e) =>
             {
                 if (e.KeyCode == Keys.Enter)
@@ -153,7 +157,7 @@ namespace MiniSupermarket.WinForms
                 }
             };
 
-            btnSearch = CreateButton("TÌM SẢN PHẨM", blue);
+            btnSearch = CreateButton("TÌM SẢN PHẨM", accentColor);
             btnSearch.Dock = DockStyle.Fill;
             btnSearch.Margin = new Padding(0);
             btnSearch.Click += async (s, e) =>
@@ -165,12 +169,12 @@ namespace MiniSupermarket.WinForms
             var searchRight = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = background
+                BackColor = darkBackground
             };
 
-            btnAdd = CreateButton("THÊM VÀO GIỎ", green);
+            btnAdd = CreateButton("THÊM VÀO GIỎ", btnGreen);
             btnAdd.Dock = DockStyle.Right;
-            btnAdd.Width = 145;
+            btnAdd.Width = 155;
             btnAdd.Click += (s, e) => AddSelectedProduct();
 
             searchRight.Controls.Add(btnAdd);
@@ -187,9 +191,10 @@ namespace MiniSupermarket.WinForms
             {
                 Text = "0 sản phẩm",
                 Dock = DockStyle.Right,
-                Width = 130,
+                Width = 140,
                 TextAlign = ContentAlignment.MiddleRight,
-                ForeColor = Color.Gray
+                ForeColor = textMuted,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
             };
 
             productPanel.Controls[0].Controls.Add(lblProductCount);
@@ -245,8 +250,7 @@ namespace MiniSupermarket.WinForms
             gridCart.BringToFront();
             cartPanel.Controls[0].BringToFront();
 
-
-            // FOOTER: chia 4 khu vực riêng để không chồng lấn
+            // FOOTER: chia 4 khu vực riêng
             var footer = new TableLayoutPanel
             {
                 Dock = DockStyle.Fill,
@@ -254,19 +258,18 @@ namespace MiniSupermarket.WinForms
                 RowCount = 1,
                 Margin = new Padding(0, 6, 0, 0),
                 Padding = new Padding(0),
-                BackColor = background,
+                BackColor = darkBackground,
                 GrowStyle = TableLayoutPanelGrowStyle.FixedSize
             };
 
-            // Nút xóa | Mã khách hàng | Tổng tiền | Thanh toán
             footer.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 19F));
+                new ColumnStyle(SizeType.Percent, 20F));
 
             footer.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 25F));
+                new ColumnStyle(SizeType.Percent, 26F));
 
             footer.ColumnStyles.Add(
-                new ColumnStyle(SizeType.Percent, 32F));
+                new ColumnStyle(SizeType.Percent, 30F));
 
             footer.ColumnStyles.Add(
                 new ColumnStyle(SizeType.Percent, 24F));
@@ -275,12 +278,12 @@ namespace MiniSupermarket.WinForms
                 new RowStyle(SizeType.Percent, 100F));
 
             // 1. NÚT XÓA SẢN PHẨM
-            btnRemove = CreateButton("XÓA SẢN PHẨM", red);
+            btnRemove = CreateButton("XÓA SẢN PHẨM", btnRed);
             btnRemove.Dock = DockStyle.Fill;
             btnRemove.Margin = new Padding(0, 5, 8, 5);
             btnRemove.MinimumSize = new Size(0, 42);
             btnRemove.Font = new Font(
-                "Segoe UI", 9F, FontStyle.Bold);
+                "Segoe UI", 9.5F, FontStyle.Bold);
 
             btnRemove.Click += (s, e) => RemoveSelectedItem();
 
@@ -292,7 +295,7 @@ namespace MiniSupermarket.WinForms
                 RowCount = 2,
                 Margin = new Padding(4, 0, 8, 0),
                 Padding = new Padding(0),
-                BackColor = background
+                BackColor = darkBackground
             };
 
             customerPanel.ColumnStyles.Add(
@@ -309,7 +312,7 @@ namespace MiniSupermarket.WinForms
                 Text = "Mã khách hàng",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.BottomLeft,
-                ForeColor = navy,
+                ForeColor = textMuted,
                 Font = new Font("Segoe UI", 9F),
                 Margin = new Padding(2, 0, 0, 2)
             };
@@ -319,6 +322,8 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Fill,
                 PlaceholderText = "Nhập mã KH",
                 Font = new Font("Segoe UI", 10F),
+                BackColor = inputBackground,
+                ForeColor = textLight,
                 Margin = new Padding(0, 2, 0, 5)
             };
 
@@ -330,8 +335,8 @@ namespace MiniSupermarket.WinForms
             {
                 Dock = DockStyle.Fill,
                 Margin = new Padding(4, 5, 8, 5),
-                BackColor = Color.White,
-                Padding = new Padding(8, 0, 4, 0)
+                BackColor = cardBackground,
+                Padding = new Padding(10, 0, 8, 0)
             };
 
             lblTotal = new Label
@@ -339,8 +344,8 @@ namespace MiniSupermarket.WinForms
                 Text = "Tổng tiền: 0 VNĐ",
                 Dock = DockStyle.Fill,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = blue,
+                Font = new Font("Segoe UI", 11F, FontStyle.Bold),
+                ForeColor = textLight,
                 AutoEllipsis = true,
                 UseMnemonic = false,
                 Margin = new Padding(0)
@@ -349,17 +354,16 @@ namespace MiniSupermarket.WinForms
             totalPanel.Controls.Add(lblTotal);
 
             // 4. NÚT THANH TOÁN
-            btnCheckout = CreateButton("THANH TOÁN", green);
+            btnCheckout = CreateButton("THANH TOÁN", btnGreen);
             btnCheckout.Dock = DockStyle.Fill;
             btnCheckout.Margin = new Padding(0, 5, 0, 5);
             btnCheckout.MinimumSize = new Size(0, 42);
             btnCheckout.Font = new Font(
-                "Segoe UI", 9.5F, FontStyle.Bold);
+                "Segoe UI", 10F, FontStyle.Bold);
 
             btnCheckout.Click += async (s, e) =>
                 await CheckoutAsync();
 
-            // Thêm từng khu vực vào footer
             footer.Controls.Add(btnRemove, 0, 0);
             footer.Controls.Add(customerPanel, 1, 0);
             footer.Controls.Add(totalPanel, 2, 0);
@@ -380,8 +384,8 @@ namespace MiniSupermarket.WinForms
             var panel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
-                Padding = new Padding(10),
+                BackColor = cardBackground,
+                Padding = new Padding(12),
                 Margin = new Padding(0, 5, 0, 5)
             };
 
@@ -391,8 +395,8 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Top,
                 Height = 32,
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
-                ForeColor = navy,
-                BackColor = Color.White,
+                ForeColor = textLight,
+                BackColor = cardBackground,
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
@@ -412,13 +416,34 @@ namespace MiniSupermarket.WinForms
                 MultiSelect = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                BackgroundColor = Color.White,
+                BackgroundColor = cardBackground,
                 BorderStyle = BorderStyle.None,
                 RowHeadersVisible = false,
                 AutoGenerateColumns = false,
                 EnableHeadersVisualStyles = false,
-                ColumnHeadersHeight = 35,
-                RowTemplate = { Height = 30 }
+                ColumnHeadersHeight = 40,
+                RowTemplate = { Height = 38 },
+                GridColor = Color.FromArgb(51, 65, 85),
+                ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(15, 23, 42),
+                    ForeColor = textLight,
+                    Font = new Font("Segoe UI", 10F, FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleLeft
+                },
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = cardBackground,
+                    ForeColor = textLight,
+                    SelectionBackColor = accentColor,
+                    SelectionForeColor = Color.White,
+                    Font = new Font("Segoe UI", 9.5F)
+                },
+                AlternatingRowsDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(35, 47, 68),
+                    ForeColor = textLight
+                }
             };
         }
 
@@ -456,11 +481,12 @@ namespace MiniSupermarket.WinForms
                 BackColor = color,
                 ForeColor = Color.White,
                 FlatStyle = FlatStyle.Flat,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
                 Cursor = Cursors.Hand,
                 UseVisualStyleBackColor = false,
                 Margin = new Padding(3),
-                Height = 38
+                Height = 40,
+                FlatAppearance = { BorderSize = 0, MouseOverBackColor = ControlPaint.Light(color, 0.15F) }
             };
         }
 
@@ -544,8 +570,6 @@ namespace MiniSupermarket.WinForms
 
                 lblProductCount.Text = $"{result.Count} sản phẩm";
 
-                // Nếu mã vừa quét khớp chính xác Barcode,
-                // tự động thêm sản phẩm vào giỏ.
                 ProductDto? barcodeProduct = result.Find(p =>
                     !string.IsNullOrWhiteSpace(p.Barcode) &&
                     string.Equals(
@@ -557,7 +581,6 @@ namespace MiniSupermarket.WinForms
                 {
                     AddProductToCart(barcodeProduct);
 
-                    // Xóa ô tìm kiếm để sẵn sàng quét mã tiếp theo.
                     txtSearch.Clear();
                     txtSearch.Focus();
                     return;
@@ -571,8 +594,6 @@ namespace MiniSupermarket.WinForms
                 }
                 else
                 {
-                    // Tìm theo tên hoặc từ khóa không trùng chính xác
-                    // với mã vạch: người dùng chọn sản phẩm để thêm.
                     gridProducts.ClearSelection();
                     txtSearch.Focus();
                 }
@@ -592,7 +613,6 @@ namespace MiniSupermarket.WinForms
             }
         }
 
-        // THÊM SẢN PHẨM ĐANG ĐƯỢC CHỌN TRÊN BẢNG
         private void AddSelectedProduct()
         {
             if (gridProducts.CurrentRow?.DataBoundItem
@@ -605,7 +625,6 @@ namespace MiniSupermarket.WinForms
             AddProductToCart(product);
         }
 
-        // DÙNG CHUNG CHO QUÉT MÃ VẠCH VÀ BẤM THÊM VÀO GIỎ
         private void AddProductToCart(ProductDto product)
         {
             if (product.StockQuantity <= 0)
@@ -681,7 +700,6 @@ namespace MiniSupermarket.WinForms
                 " VNĐ";
         }
 
-        // Gửi giỏ hàng lên POST api/checkout. API tự lấy giá thật từ SQL Server.
         private async Task CheckoutAsync()
         {
             if (cart.Count == 0)
@@ -711,7 +729,6 @@ namespace MiniSupermarket.WinForms
                 return;
             }
 
-            // Snapshot giỏ hàng để dữ liệu không đổi trong lúc chờ API.
             var cartSnapshot = cart.Select(item => new
             {
                 ProductId = item.ProductId,
@@ -764,7 +781,7 @@ namespace MiniSupermarket.WinForms
                 }
                 catch (JsonException)
                 {
-                    // Giữ response nguyên bản nếu server trả về HTML hoặc nội dung không phải JSON.
+                    // Giữ nguyên bản nếu không phải JSON
                 }
 
                 if (!response.IsSuccessStatusCode || !success)
@@ -788,7 +805,6 @@ namespace MiniSupermarket.WinForms
                 UpdateTotal();
                 txtCustomerId.Clear();
 
-                // Tải lại danh sách sản phẩm để cập nhật tồn kho mới từ API.
                 await RefreshProductsAsync();
                 txtSearch.Focus();
             }
@@ -830,7 +846,7 @@ namespace MiniSupermarket.WinForms
             }
             catch
             {
-                // Thanh toán đã thành công; lỗi làm mới danh sách không được xem là lỗi thanh toán.
+                // Bỏ qua lỗi làm mới khi thanh toán thành công
             }
         }
 

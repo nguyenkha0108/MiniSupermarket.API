@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using MiniSupermarket.API.Data;
 using MiniSupermarket.API.Models;
+using System.Data;
 
 namespace MiniSupermarket.API.Controllers
 {
@@ -120,30 +122,80 @@ namespace MiniSupermarket.API.Controllers
             return Ok(products);
         }
 
-        // GET: api/products/category/1
-        // Lấy sản phẩm theo CategoryId
-        [HttpGet("category/{categoryId:int}")]
+        // GET: api/products/barcode/8938501670012
+        // Tìm nhanh sản phẩm bằng mã vạch sử dụng SqlConnection, SqlCommand
+        [HttpGet("barcode/{barcode}")]
         [Authorize(Roles = "Admin,Cashier")]
-        public async Task<IActionResult> GetByCategory(int categoryId)
+        public async Task<IActionResult> GetByBarcode(string barcode)
         {
-            var categoryExists = await _context.Categories
-                .AnyAsync(c => c.CategoryId == categoryId);
-
-            if (!categoryExists)
+            if (string.IsNullOrWhiteSpace(barcode))
             {
-                return NotFound(new
+                return BadRequest(new
                 {
-                    message = "Không tìm thấy danh mục!"
+                    message = "Vui lòng nhập mã vạch!"
                 });
             }
 
-            var products = await _context.Products
-                .AsNoTracking()
-                .Include(p => p.Category)
-                .Where(p => p.CategoryId == categoryId)
-                .ToListAsync();
+            var connectionString =
+                _context.Database.GetConnectionString();
 
-            return Ok(products);
+            if (string.IsNullOrWhiteSpace(connectionString))
+            {
+                return StatusCode(500, new
+                {
+                    message = "Chưa cấu hình chuỗi kết nối database!"
+                });
+            }
+
+            await using var connection =
+                new SqlConnection(connectionString);
+
+            await using var command = new SqlCommand(@"
+        SELECT TOP 1
+            p.ProductId,
+            p.Barcode,
+            p.ProductName,
+            p.Price,
+            p.StockQuantity,
+            p.CategoryId,
+            c.CategoryName
+        FROM Products AS p
+        LEFT JOIN Categories AS c
+            ON p.CategoryId = c.CategoryId
+        WHERE p.Barcode = @Barcode;
+    ", connection);
+
+            command.Parameters
+                .Add("@Barcode", SqlDbType.VarChar, 50)
+                .Value = barcode.Trim();
+
+            await connection.OpenAsync();
+
+            await using var reader =
+                await command.ExecuteReaderAsync();
+
+            if (!await reader.ReadAsync())
+            {
+                return NotFound(new
+                {
+                    message = "Không tìm thấy sản phẩm có mã vạch này!"
+                });
+            }
+
+            var product = new
+            {
+                ProductId = reader["ProductId"],
+                Barcode = reader["Barcode"],
+                ProductName = reader["ProductName"],
+                Price = reader["Price"],
+                StockQuantity = reader["StockQuantity"],
+                CategoryId = reader["CategoryId"],
+                CategoryName = reader["CategoryName"] == DBNull.Value
+                    ? "Chưa phân loại"
+                    : reader["CategoryName"].ToString()
+            };
+
+            return Ok(product);
         }
 
         // POST: api/products

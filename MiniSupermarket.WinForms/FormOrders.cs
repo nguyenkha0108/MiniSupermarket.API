@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Net.Http;
@@ -15,6 +14,16 @@ namespace MiniSupermarket.WinForms
         {
             BaseAddress = new Uri("https://localhost:7044/api/")
         };
+
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/panel/grid)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color accentHover = Color.FromArgb(147, 51, 234);    // Tím đậm khi hover
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+        private readonly Color btnGreen = Color.FromArgb(22, 163, 74);        // Xanh lá (Làm mới)
 
         private readonly TextBox txtSearch = new();
         private readonly DataGridView gridOrders = new();
@@ -33,8 +42,9 @@ namespace MiniSupermarket.WinForms
             StartPosition = FormStartPosition.CenterScreen;
             MinimumSize = new Size(950, 600);
             Size = new Size(1200, 750);
-            BackColor = Color.FromArgb(243, 246, 251);
-            Padding = new Padding(12);
+            BackColor = darkBackground;
+            ForeColor = textLight;
+            Padding = new Padding(15);
             Font = new Font("Segoe UI", 9.5F);
 
             BuildUi();
@@ -49,59 +59,48 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Fill,
                 ColumnCount = 1,
                 RowCount = 4,
-                BackColor = BackColor,
-                Padding = new Padding(4),
+                BackColor = darkBackground,
+                Padding = new Padding(0),
                 Margin = new Padding(0)
             };
 
-            root.RowStyles.Add(
-                new RowStyle(SizeType.Absolute, 48));
-            root.RowStyles.Add(
-                new RowStyle(SizeType.Percent, 55));
-            root.RowStyles.Add(
-                new RowStyle(SizeType.Absolute, 42));
-            root.RowStyles.Add(
-                new RowStyle(SizeType.Percent, 45));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 50));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 55));
+            root.RowStyles.Add(new RowStyle(SizeType.Absolute, 44));
+            root.RowStyles.Add(new RowStyle(SizeType.Percent, 45));
 
             // Thanh tìm kiếm
             var searchPanel = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = BackColor,
+                BackColor = darkBackground,
                 Margin = new Padding(0)
             };
 
             var heading = new Label
             {
                 Text = "DANH SÁCH HÓA ĐƠN",
-                Location = new Point(0, 0),
-                Size = new Size(245, 42),
+                Location = new Point(0, 4),
+                Size = new Size(245, 40),
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(17, 24, 39)
+                Font = new Font("Segoe UI", 15F, FontStyle.Bold),
+                ForeColor = textLight
             };
 
-            txtSearch.PlaceholderText =
-                "Mã hóa đơn, nhân viên hoặc mã khách hàng";
-            txtSearch.SetBounds(250, 7, 330, 32);
+            txtSearch.PlaceholderText = "Mã hóa đơn, nhân viên hoặc mã khách hàng";
+            txtSearch.SetBounds(250, 8, 330, 34);
+            txtSearch.BackColor = inputBackground;
+            txtSearch.ForeColor = textLight;
             txtSearch.Anchor = AnchorStyles.Top | AnchorStyles.Left;
 
             btnSearch.Text = "TÌM KIẾM";
-            btnSearch.SetBounds(590, 6, 100, 34);
-            btnSearch.BackColor = Color.FromArgb(37, 99, 235);
-            btnSearch.ForeColor = Color.White;
-            btnSearch.FlatStyle = FlatStyle.Flat;
-            btnSearch.FlatAppearance.BorderSize = 0;
-            btnSearch.Cursor = Cursors.Hand;
+            btnSearch.SetBounds(590, 7, 100, 36);
+            StyleActionButton(btnSearch, accentColor);
             btnSearch.Click += async (_, _) => await LoadOrdersAsync();
 
             btnRefresh.Text = "LÀM MỚI";
-            btnRefresh.SetBounds(698, 6, 100, 34);
-            btnRefresh.BackColor = Color.FromArgb(22, 163, 74);
-            btnRefresh.ForeColor = Color.White;
-            btnRefresh.FlatStyle = FlatStyle.Flat;
-            btnRefresh.FlatAppearance.BorderSize = 0;
-            btnRefresh.Cursor = Cursors.Hand;
+            btnRefresh.SetBounds(698, 7, 100, 36);
+            StyleActionButton(btnRefresh, btnGreen);
             btnRefresh.Click += async (_, _) =>
             {
                 txtSearch.Clear();
@@ -171,7 +170,6 @@ namespace MiniSupermarket.WinForms
                 }
             });
 
-            // Sửa cột Tổng SL: tăng độ rộng để không bị cắt chữ.
             gridOrders.Columns.Add(new DataGridViewTextBoxColumn
             {
                 Name = "TotalItems",
@@ -214,24 +212,23 @@ namespace MiniSupermarket.WinForms
             var detailHeader = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = BackColor,
+                BackColor = darkBackground,
                 Margin = new Padding(0)
             };
 
             lblSelectedOrder.Text = "CHI TIẾT HÓA ĐƠN";
             lblSelectedOrder.Dock = DockStyle.Fill;
             lblSelectedOrder.TextAlign = ContentAlignment.MiddleLeft;
-            lblSelectedOrder.Font =
-                new Font("Segoe UI", 10.5F, FontStyle.Bold);
-            lblSelectedOrder.ForeColor = Color.FromArgb(17, 24, 39);
+            lblSelectedOrder.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
+            lblSelectedOrder.ForeColor = textLight;
             lblSelectedOrder.AutoEllipsis = true;
             lblSelectedOrder.Padding = new Padding(0, 0, 8, 0);
 
             lblStatus.Text = "";
             lblStatus.Dock = DockStyle.Right;
-            lblStatus.Width = 200;
+            lblStatus.Width = 220;
             lblStatus.TextAlign = ContentAlignment.MiddleRight;
-            lblStatus.ForeColor = Color.FromArgb(100, 116, 139);
+            lblStatus.ForeColor = textMuted;
             lblStatus.AutoEllipsis = true;
 
             detailHeader.Controls.Add(lblSelectedOrder);
@@ -306,51 +303,55 @@ namespace MiniSupermarket.WinForms
             Controls.Add(root);
         }
 
-        private static void ConfigureGrid(DataGridView grid)
+        private void ConfigureGrid(DataGridView grid)
         {
             grid.Dock = DockStyle.Fill;
             grid.Margin = new Padding(0, 2, 0, 2);
-            grid.BackgroundColor = Color.White;
+            grid.BackgroundColor = cardBackground;
             grid.BorderStyle = BorderStyle.None;
 
             grid.AllowUserToAddRows = false;
             grid.AllowUserToDeleteRows = false;
             grid.ReadOnly = true;
             grid.MultiSelect = false;
-            grid.SelectionMode =
-                DataGridViewSelectionMode.FullRowSelect;
+            grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.AutoGenerateColumns = false;
             grid.RowHeadersVisible = false;
-            grid.AutoSizeRowsMode =
-                DataGridViewAutoSizeRowsMode.None;
-            grid.RowTemplate.Height = 30;
+            grid.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+            grid.RowTemplate.Height = 38;
             grid.EnableHeadersVisualStyles = false;
 
-            // Tiêu đề cột
-            grid.ColumnHeadersDefaultCellStyle.BackColor =
-                Color.FromArgb(229, 231, 235);
-            grid.ColumnHeadersDefaultCellStyle.ForeColor =
-                Color.FromArgb(17, 24, 39);
-            grid.ColumnHeadersDefaultCellStyle.Font =
-                new Font("Segoe UI", 9.5F, FontStyle.Bold);
-            grid.ColumnHeadersDefaultCellStyle.Alignment =
-                DataGridViewContentAlignment.MiddleCenter;
-            grid.ColumnHeadersDefaultCellStyle.WrapMode =
-                DataGridViewTriState.False;
+            // Tiêu đề cột Dark Mode
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = textLight;
+            grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
+            grid.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+            grid.ColumnHeadersDefaultCellStyle.WrapMode = DataGridViewTriState.False;
 
-            grid.ColumnHeadersHeight = 40;
-            grid.ColumnHeadersHeightSizeMode =
-                DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
+            grid.ColumnHeadersHeight = 42;
+            grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.DisableResizing;
 
-            // Dòng dữ liệu
-            grid.DefaultCellStyle.Font =
-                new Font("Segoe UI", 9.5F);
-            grid.DefaultCellStyle.SelectionBackColor =
-                Color.FromArgb(219, 234, 254);
-            grid.DefaultCellStyle.SelectionForeColor =
-                Color.FromArgb(17, 24, 39);
-            grid.AlternatingRowsDefaultCellStyle.BackColor =
-                Color.FromArgb(248, 250, 252);
+            // Dòng dữ liệu Dark Mode
+            grid.DefaultCellStyle.Font = new Font("Segoe UI", 9.5F);
+            grid.DefaultCellStyle.BackColor = cardBackground;
+            grid.DefaultCellStyle.ForeColor = textLight;
+            grid.DefaultCellStyle.SelectionBackColor = accentColor;
+            grid.DefaultCellStyle.SelectionForeColor = Color.White;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(35, 47, 68);
+            grid.AlternatingRowsDefaultCellStyle.ForeColor = textLight;
+            grid.GridColor = Color.FromArgb(51, 65, 85);
+        }
+
+        private void StyleActionButton(Button button, Color color)
+        {
+            button.BackColor = color;
+            button.ForeColor = Color.White;
+            button.FlatStyle = FlatStyle.Flat;
+            button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(color, 0.15F);
+            button.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
+            button.Cursor = Cursors.Hand;
+            button.UseVisualStyleBackColor = false;
         }
 
         private async Task LoadOrdersAsync()
@@ -444,7 +445,6 @@ namespace MiniSupermarket.WinForms
                         $"checkout/orders/{order.OrderId}")
                     ?? new List<OrderDetailRow>();
 
-                // Không hiển thị dữ liệu của hóa đơn cũ khi đổi lựa chọn.
                 if (gridOrders.CurrentRow?.DataBoundItem
                     is not OrderRow currentOrder
                     || currentOrder.OrderId != order.OrderId)

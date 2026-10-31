@@ -1,78 +1,131 @@
-# BUỔI 5 – ADO.NET nâng cao, Stored Procedure và POS Checkout
+# MiniSupermarket – Hệ thống quản lý siêu thị mini
 
-Dự án được phát triển tiếp từ `Buoi4-master.zip` đã gửi, giữ lại các controller, model, migration và giao diện WinForms hiện có; bổ sung các nội dung thực hành Buổi 5 theo file bài giảng.
+## 1. Giới thiệu
+MiniSupermarket là ứng dụng quản lý siêu thị mini, được xây dựng bằng ASP.NET Core Web API, Windows Forms và SQL Server.
 
-## Nội dung đã bổ sung
+Hệ thống hỗ trợ quản lý sản phẩm, danh mục, khách hàng, tài khoản, bán hàng tại quầy và báo cáo doanh thu.
 
-- **Tiết 1 – ADO.NET cơ bản:** project Console riêng `ThucHanhAdoNetConsole` minh họa `ExecuteScalar`, `ExecuteNonQuery` + tham số, `ExecuteReader`, `SqlTransaction`/`Rollback`.
-- **Tiết 2 – Barcode / DataTable:** `GET /api/ado-products/barcode/{barcode}`, `GET /api/ado-products/disconnected-cache`, bài tập `GET /api/ado-products/filter-stock?minStock=50`.
-- **Tiết 3 – Stored Procedure / báo cáo:** `GET /api/Reports/revenue-by-cashier`, `GET /api/Reports/revenue-by-date`, `GET /api/Reports/top5-selling-products`.
-- **Tiết 4–5 – ACID / POS checkout:** `POST /api/checkout` ghi hóa đơn, chi tiết hóa đơn, trừ tồn kho và cộng điểm trong cùng transaction; `DELETE /api/checkout/cancel/{orderId}` hủy đơn, hoàn kho, trừ điểm và xóa hóa đơn trong transaction.
-- SQL tạo bảng `Orders`, `OrderDetails`, thủ tục báo cáo và dữ liệu demo: `MiniSupermarket.API/Database/Buoi5_Setup.sql`.
+## 2. Công nghệ sử dụng
+- Backend: ASP.NET Core Web API (.NET 8).
+- Frontend: Windows Forms (.NET 8).
+- Database: Microsoft SQL Server.
+- ORM: Entity Framework Core.
+- Data Access: ADO.NET.
+- Authentication: JWT Bearer.
+- API Documentation: Swagger.
+- IDE: Visual Studio 2022.
+- Version Control: Git và GitHub.
 
-> **Lưu ý về dữ liệu:** project Buổi 4 bạn gửi là dữ liệu rau củ Đà Lạt, còn ví dụ trong giáo trình dùng dữ liệu siêu thị như snack/Danisa/Coca-Cola. Phần code được tích hợp theo đúng cấu trúc `Products`/`Customers` hiện có của Buổi 4 nên tên, mã vạch, giá và tồn kho sẽ theo database của bạn; chức năng ADO.NET, Stored Procedure và Transaction được bổ sung theo yêu cầu bài Buổi 5.
+## 3. Các chức năng đã thực hiện
 
-## Cách chạy
+### 3.1. Quản lý tài khoản và phân quyền
+- Đăng nhập bằng tài khoản hệ thống.
+- Xác thực người dùng bằng JWT.
+- Phân quyền Admin, Cashier và Warehouse.
+- Quản lý tài khoản người dùng.
 
-### 1. Mở project
-Mở `MiniSupermarket.API.sln` bằng Visual Studio 2022. Chọn project `MiniSupermarket.API` làm Startup Project.
+### 3.2. Quản lý dữ liệu
+- Quản lý sản phẩm: thêm, sửa, xóa, tìm kiếm.
+- Quản lý danh mục sản phẩm.
+- Quản lý khách hàng.
+- Quản lý đơn hàng.
+- Theo dõi số lượng tồn kho.
 
-### 2. Kiểm tra chuỗi kết nối
-Mở `MiniSupermarket.API/appsettings.json`, chỉnh `ConnectionStrings:DefaultConnection` trỏ đến SQL Server trên máy của bạn. File đang giữ server từ project gốc (`.\\NGUYENKHA`), ví dụ:
-- SQL Server Express: `Server=.\\SQLEXPRESS;Database=MiniSupermarketDb;Trusted_Connection=True;TrustServerCertificate=True;`
-- Default instance: `Server=localhost;Database=MiniSupermarketDb;Trusted_Connection=True;TrustServerCertificate=True;`
+### 3.3. Bán hàng POS
+- Tìm kiếm sản phẩm.
+- Thêm sản phẩm vào giỏ hàng.
+- Tính tổng tiền thanh toán.
+- Kiểm tra tồn kho trước khi bán.
+- Tạo hóa đơn và chi tiết hóa đơn.
+- Cập nhật số lượng tồn kho.
+- Cộng điểm thưởng khách hàng.
+- Hỗ trợ hủy đơn và hoàn trả tồn kho.
 
-Database phải là `MiniSupermarketDb`. Chạy migration Buổi 4 trước để có bảng `Products`, `Categories`, `Customers`.
+### 3.4. Báo cáo và thống kê
+- Báo cáo doanh thu theo nhân viên thu ngân.
+- Báo cáo doanh thu theo ngày.
+- Thống kê 5 sản phẩm bán chạy.
+- Tra cứu dữ liệu sản phẩm bằng mã vạch.
 
-### 3. Tạo bảng và Stored Procedure Buổi 5
-Mở SQL Server Management Studio (SSMS), chọn database `MiniSupermarketDb`, mở `MiniSupermarket.API/Database/Buoi5_Setup.sql` và Execute. Script tạo các bảng còn thiếu và các Stored Procedure; nếu bảng Orders chưa có dữ liệu và đã có khách hàng/sản phẩm, script sẽ tạo 15 hóa đơn demo. Chạy script một lần nữa cũng không tạo thêm dữ liệu demo nếu Orders đã có dữ liệu.
+### 3.5. ADO.NET và giao dịch
+- Thực hành ExecuteScalar, ExecuteNonQuery và ExecuteReader.
+- Sử dụng tham số trong câu lệnh SQL.
+- Sử dụng SqlTransaction.
+- Thực hiện Commit và Rollback.
+- Xây dựng Stored Procedure phục vụ báo cáo.
 
-### 4. Chạy Web API
-Nhấn F5 hoặc Ctrl+F5. Mở đường dẫn Swagger được Visual Studio hiển thị, thường là `https://localhost:<port>/swagger`.
+## 4. Cấu trúc dự án
 
-## Kiểm thử Swagger
+- MiniSupermarket.API: Backend Web API.
+- MiniSupermarket.WinForms: Giao diện Windows Forms.
+- ThucHanhAdoNetConsole: Các bài thực hành ADO.NET.
+- MiniSupermarket.API/Database: Script SQL.
+- MiniSupermarket.API/Migrations: Các migration Entity Framework Core.
 
-### Barcode
-- `GET /api/ado-products/barcode/8930000000011` (mã mẫu trong dữ liệu Buổi 4; có thể thay bằng Barcode đang tồn tại trong bảng Products).
-- `GET /api/ado-products/disconnected-cache`
-- `GET /api/ado-products/filter-stock?minStock=50`
+## 5. Yêu cầu môi trường
+- Windows 10/11.
+- Visual Studio 2022.
+- .NET 8 SDK.
+- SQL Server.
+- SQL Server Management Studio (SSMS).
 
-### Báo cáo
-- `GET /api/Reports/revenue-by-cashier`
-- `GET /api/Reports/revenue-by-date?fromDate=2026-10-01&toDate=2026-10-31`
-- `GET /api/Reports/top5-selling-products`
+## 6. Hướng dẫn cài đặt và chạy
 
-### Thanh toán thành công
-Dùng `CustomerId` đang tồn tại (database mẫu có CustomerId 1) và `ProductId` tồn tại, còn đủ hàng. Giá gửi từ client chỉ để phù hợp mẫu giáo trình; API lấy giá bán thật từ database.
+### Bước 1: Tạo cơ sở dữ liệu
+1. Mở SQL Server Management Studio.
+2. Kết nối SQL Server.
+3. Tạo hoặc khôi phục database MiniSupermarketDb.
+4. Cấu hình chuỗi kết nối trong MiniSupermarket.API/appsettings.json.
+5. Đảm bảo database có các bảng cần thiết trước khi chạy ứng dụng.
 
-```json
-{
-  "cashierUsername": "cashier01",
-  "customerId": 1,
-  "items": [
-    { "productId": 1, "quantity": 2, "unitPrice": 25000 },
-    { "productId": 5, "quantity": 1, "unitPrice": 20000 }
-  ]
-}
-```
+### Bước 2: Chạy Backend
+1. Mở MiniSupermarket.API.sln bằng Visual Studio 2022.
+2. Chọn project MiniSupermarket.API làm Startup Project.
+3. Kiểm tra cấu hình ConnectionStrings và JwtSettings.
+4. Khôi phục các NuGet packages nếu Visual Studio yêu cầu.
+5. Nhấn F5 hoặc Ctrl + F5.
+6. Mở Swagger tại https://localhost:7044/swagger.
 
-### Kiểm thử Rollback
-Gửi `POST /api/checkout` với một sản phẩm có `quantity` lớn hơn tồn kho thực tế. API trả `400 Bad Request`, đồng thời transaction hoàn tác toàn bộ thao tác; không để lại hóa đơn/chi tiết và không trừ kho/điểm.
+### Bước 3: Chuẩn bị dữ liệu Buổi 5
+1. Mở file MiniSupermarket.API/Database/Buoi5_Setup.sql bằng SSMS.
+2. Chọn database MiniSupermarketDb.
+3. Thực thi script SQL.
+4. Kiểm tra các bảng và Stored Procedure đã được tạo.
 
-### Hủy đơn
-Sau khi thanh toán thành công, dùng `DELETE /api/checkout/cancel/{orderId}` với `orderId` nhận được từ phản hồi thanh toán. API hoàn kho, khấu trừ điểm thưởng đã cộng, xóa OrderDetails rồi Orders trong một transaction.
+### Bước 4: Chạy Frontend WinForms
+1. Trong Visual Studio, nhấp chuột phải project MiniSupermarket.WinForms.
+2. Chọn Set as Startup Project.
+3. Kiểm tra địa chỉ API trong các file giao diện, mặc định là https://localhost:7044.
+4. Đảm bảo Backend đang chạy.
+5. Nhấn F5 để khởi động ứng dụng.
+6. Đăng nhập bằng tài khoản đã được tạo trong database.
 
-## Chạy Console ADO.NET (Tiết 1 và mô phỏng Tiết 4)
-Mở terminal tại thư mục `ThucHanhAdoNetConsole`, sửa `connectionString` trong `Program.cs` cho đúng máy SQL Server, rồi chạy:
+### Bước 5: Chạy chương trình thực hành ADO.NET
+1. Mở Terminal tại thư mục ThucHanhAdoNetConsole.
+2. Cấu hình chuỗi kết nối SQL Server trong Program.cs.
+3. Chạy lệnh:
 
 ```bash
 dotnet run
 ```
 
-Menu có 4 bài. Bài 2 thực sự thay đổi tồn kho nên chỉ chạy với ProductId phù hợp; bài 4 cố tình phát sinh lỗi để quan sát Rollback.
+## 7. API kiểm thử
 
-## Ghi chú kỹ thuật
-- Tất cả câu truy vấn có đầu vào đều dùng tham số SQL, không ghép chuỗi đầu vào vào SQL.
-- Kết nối, command và reader được giải phóng bằng `using`.
-- `CheckoutController` gắn mọi command vào cùng `SqlTransaction`; chỉ `Commit()` sau khi hoàn tất, lỗi thì `Rollback()`.
-- Không kèm `bin`, `obj`, `.vs` hoặc các file build/cache; Visual Studio sẽ khôi phục NuGet và build lại.
+- POST /api/Auth/login: Đăng nhập.
+- GET /api/Products: Lấy danh sách sản phẩm.
+- GET /api/ado-products/barcode/{barcode}: Tra cứu mã vạch.
+- GET /api/Reports/revenue-by-cashier: Doanh thu theo thu ngân.
+- GET /api/Reports/revenue-by-date: Doanh thu theo ngày.
+- GET /api/Reports/top5-selling-products: Top 5 sản phẩm bán chạy.
+- POST /api/checkout: Thanh toán POS.
+- DELETE /api/checkout/cancel/{orderId}: Hủy đơn hàng.
+
+## 8. Lưu ý
+- Phải cấu hình đúng SQL Server trước khi chạy ứng dụng.
+- Backend cần được khởi động trước Frontend.
+- Không đưa mật khẩu, khóa JWT hoặc thông tin kết nối cá nhân lên GitHub.
+- Không đưa các thư mục bin, obj, .vs và node_modules lên GitHub.
+- Các thư viện NuGet sẽ được khôi phục khi mở và build dự án.
+
+## 9. Tác giả
+Đồ án môn học: Xây dựng hệ thống quản lý siêu thị mini.

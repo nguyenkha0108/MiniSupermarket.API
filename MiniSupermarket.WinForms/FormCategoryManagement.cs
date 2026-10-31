@@ -1,7 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
@@ -16,12 +16,31 @@ namespace MiniSupermarket.WinForms
             BaseAddress = new Uri("https://localhost:7044/api/")
         };
 
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
-        private readonly Color green = Color.FromArgb(22, 163, 74);
-        private readonly Color red = Color.FromArgb(220, 38, 38);
-        private readonly Color orange = Color.FromArgb(234, 88, 12);
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/card)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color accentHover = Color.FromArgb(147, 51, 234);    // Tím đậm khi hover
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+        private readonly Color btnGreen = Color.FromArgb(22, 163, 74);        // Xanh lá (Thêm)
+        private readonly Color btnOrange = Color.FromArgb(234, 88, 12);       // Cam (Sửa)
+        private readonly Color btnRed = Color.FromArgb(220, 38, 38);          // Đỏ (Xóa)
+
+        // ================= PHÂN TRANG =================
+
+        private List<CategoryDto> _allCategories = new();
+
+        private int _currentPage = 1;
+        private int _pageSize = 10;
+
+        private Label lblPageInfo = new();
+        private Button btnPreviousPage = new();
+        private Button btnNextPage = new();
+        private ComboBox cboPageSize = new();
+
+        private FlowLayoutPanel paginationPanel = new();
 
         public FormCategoryManagement()
         {
@@ -29,47 +48,48 @@ namespace MiniSupermarket.WinForms
 
             StyleExistingControls();
 
+            InitializePagination();
+
             SessionManager.AddAuthorizationHeader(_client);
 
             ApplyPermissions();
         }
 
         // =====================================================
-        // GIAO DIỆN
+        // GIAO DIỆN DARK MODE
         // =====================================================
+
         private void StyleExistingControls()
         {
             Text = "KhaMiniMart | Quản lý danh mục";
-            BackColor = background;
-            ForeColor = Color.FromArgb(15, 23, 42);
+            BackColor = darkBackground;
+            ForeColor = textLight;
             Font = new Font("Segoe UI", 10F);
 
             WindowState = FormWindowState.Maximized;
             StartPosition = FormStartPosition.CenterScreen;
-            Padding = new Padding(10);
+            Padding = new Padding(15);
 
             StyleControlsRecursively(this);
 
-            // Bảng danh mục tự co giãn theo vùng chứa
             dgvCategories.Dock = DockStyle.Fill;
             dgvCategories.Margin = Padding.Empty;
+
             dgvCategories.AutoSizeColumnsMode =
                 DataGridViewAutoSizeColumnsMode.Fill;
+
             dgvCategories.ScrollBars = ScrollBars.Both;
 
-            // Màu các nút chức năng
-            StyleActionButton(btnAdd, green);
-            StyleActionButton(btnUpdate, orange);
-            StyleActionButton(btnDelete, red);
-            StyleActionButton(btnLoad, blue);
-            StyleActionButton(btnSearch, blue);
+            StyleActionButton(btnAdd, btnGreen);
+            StyleActionButton(btnUpdate, btnOrange);
+            StyleActionButton(btnDelete, btnRed);
+            StyleActionButton(btnLoad, accentColor);
+            StyleActionButton(btnSearch, accentColor);
 
-            // Giữ kích thước nút, không ép nhỏ
-            btnSearch.MinimumSize = new Size(95, 35);
-            btnLoad.MinimumSize = new Size(95, 35);
+            btnSearch.MinimumSize = new Size(95, 38);
+            btnLoad.MinimumSize = new Size(95, 38);
 
-            // Không ép chiều rộng ô tìm kiếm theo chiều rộng Form
-            txtKeyword.MinimumSize = new Size(150, 25);
+            txtKeyword.MinimumSize = new Size(150, 30);
         }
 
         private void StyleControlsRecursively(Control parent)
@@ -78,7 +98,7 @@ namespace MiniSupermarket.WinForms
             {
                 if (control is DataGridView grid)
                 {
-                    grid.BackgroundColor = Color.White;
+                    grid.BackgroundColor = cardBackground;
                     grid.BorderStyle = BorderStyle.None;
                     grid.EnableHeadersVisualStyles = false;
                     grid.RowHeadersVisible = false;
@@ -90,32 +110,33 @@ namespace MiniSupermarket.WinForms
 
                     grid.SelectionMode =
                         DataGridViewSelectionMode.FullRowSelect;
+
                     grid.MultiSelect = false;
+                    grid.GridColor = Color.FromArgb(51, 65, 85);
+                    grid.RowTemplate.Height = 40;
+                    grid.ColumnHeadersHeight = 44;
 
-                    grid.AutoSizeColumnsMode =
-                        DataGridViewAutoSizeColumnsMode.Fill;
-                    grid.AutoSizeRowsMode =
-                        DataGridViewAutoSizeRowsMode.None;
-
-                    grid.GridColor = Color.FromArgb(226, 232, 240);
-                    grid.RowTemplate.Height = 38;
-                    grid.ColumnHeadersHeight = 42;
-
-                    grid.ColumnHeadersDefaultCellStyle.BackColor = navy;
-                    grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+                    grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42);
+                    grid.ColumnHeadersDefaultCellStyle.ForeColor = textLight;
                     grid.ColumnHeadersDefaultCellStyle.Font =
                         new Font("Segoe UI", 10F, FontStyle.Bold);
 
-                    grid.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
-                    grid.DefaultCellStyle.ForeColor =
-                        Color.FromArgb(15, 23, 42);
+                    grid.DefaultCellStyle.Font =
+                        new Font("Segoe UI", 10F);
+
+                    grid.DefaultCellStyle.BackColor = cardBackground;
+                    grid.DefaultCellStyle.ForeColor = textLight;
+
                     grid.DefaultCellStyle.SelectionBackColor =
-                        Color.FromArgb(219, 234, 254);
+                        accentColor;
+
                     grid.DefaultCellStyle.SelectionForeColor =
-                        Color.FromArgb(15, 23, 42);
+                        Color.White;
 
                     grid.AlternatingRowsDefaultCellStyle.BackColor =
-                        Color.FromArgb(248, 250, 252);
+                        Color.FromArgb(35, 47, 68);
+
+                    grid.AlternatingRowsDefaultCellStyle.ForeColor = textLight;
 
                     grid.Margin = Padding.Empty;
                 }
@@ -123,31 +144,35 @@ namespace MiniSupermarket.WinForms
                 {
                     button.FlatStyle = FlatStyle.Flat;
                     button.FlatAppearance.BorderSize = 0;
-                    button.BackColor = blue;
+                    button.BackColor = accentColor;
                     button.ForeColor = Color.White;
+
                     button.Font = new Font(
                         "Segoe UI", 9.5F, FontStyle.Bold);
+
                     button.Cursor = Cursors.Hand;
                     button.UseVisualStyleBackColor = false;
+
                     button.FlatAppearance.MouseOverBackColor =
-                        Color.FromArgb(29, 78, 216);
+                        accentHover;
                 }
                 else if (control is TextBox textBox)
                 {
-                    textBox.Font = new Font("Segoe UI", 10F);
-                    textBox.BackColor = Color.White;
-                    textBox.ForeColor =
-                        Color.FromArgb(15, 23, 42);
+                    textBox.Font = new Font("Segoe UI", 10.5F);
+                    textBox.BackColor = inputBackground;
+                    textBox.ForeColor = textLight;
+                    textBox.BorderStyle = BorderStyle.FixedSingle;
                 }
                 else if (control is Label label)
                 {
-                    label.ForeColor = Color.FromArgb(51, 65, 85);
+                    label.ForeColor = textMuted;
 
                     if (label.Font.Size >= 14)
                     {
-                        label.Font =
-                            new Font("Segoe UI", 16F, FontStyle.Bold);
-                        label.ForeColor = navy;
+                        label.Font = new Font(
+                            "Segoe UI", 16F, FontStyle.Bold);
+
+                        label.ForeColor = textLight;
                     }
                 }
 
@@ -164,17 +189,120 @@ namespace MiniSupermarket.WinForms
             button.ForeColor = Color.White;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
+
             button.FlatAppearance.MouseOverBackColor =
-                ControlPaint.Dark(color, 0.12F);
+                ControlPaint.Light(color, 0.15F);
+
             button.Font = new Font(
                 "Segoe UI", 9.5F, FontStyle.Bold);
+
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
         }
 
         // =====================================================
+        // KHỞI TẠO ĐIỀU KHIỂN PHÂN TRANG (DARK THEME)
+        // =====================================================
+
+        private void InitializePagination()
+        {
+            paginationPanel = new FlowLayoutPanel
+            {
+                Name = "paginationPanel",
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                Padding = new Padding(10),
+                Margin = Padding.Empty,
+                BackColor = cardBackground,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoScroll = true
+            };
+
+            var lblPageSize = new Label
+            {
+                Text = "Số dòng/trang:",
+                AutoSize = true,
+                Margin = new Padding(5, 12, 5, 0),
+                ForeColor = textMuted
+            };
+
+            cboPageSize = new ComboBox
+            {
+                Name = "cboPageSize",
+                Width = 80,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9.5F),
+                BackColor = inputBackground,
+                ForeColor = textLight,
+                Margin = new Padding(3, 8, 15, 0)
+            };
+
+            cboPageSize.Items.AddRange(
+                new object[] { 5, 10, 20, 50 });
+
+            cboPageSize.SelectedItem = 10;
+
+            btnPreviousPage = new Button
+            {
+                Name = "btnPreviousPage",
+                Text = "◀ Trước",
+                Width = 100,
+                Height = 36,
+                Margin = new Padding(3, 5, 5, 0)
+            };
+
+            lblPageInfo = new Label
+            {
+                Name = "lblPageInfo",
+                Text = "Trang 0/0",
+                AutoSize = true,
+                MinimumSize = new Size(180, 34),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(5, 6, 5, 0),
+                ForeColor = textLight,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
+            };
+
+            btnNextPage = new Button
+            {
+                Name = "btnNextPage",
+                Text = "Sau ▶",
+                Width = 100,
+                Height = 36,
+                Margin = new Padding(5, 5, 3, 0)
+            };
+
+            StyleActionButton(btnPreviousPage, accentColor);
+            StyleActionButton(btnNextPage, accentColor);
+
+            paginationPanel.Controls.Add(lblPageSize);
+            paginationPanel.Controls.Add(cboPageSize);
+            paginationPanel.Controls.Add(btnPreviousPage);
+            paginationPanel.Controls.Add(lblPageInfo);
+            paginationPanel.Controls.Add(btnNextPage);
+
+            Control parent = dgvCategories.Parent;
+
+            if (parent != null)
+            {
+                parent.Controls.Add(paginationPanel);
+                paginationPanel.BringToFront();
+            }
+
+            btnPreviousPage.Click += btnPreviousPage_Click;
+            btnNextPage.Click += btnNextPage_Click;
+
+            cboPageSize.SelectedIndexChanged +=
+                cboPageSize_SelectedIndexChanged;
+
+            UpdatePaginationControls();
+        }
+
+        // =====================================================
         // PHÂN QUYỀN
         // =====================================================
+
         private void ApplyPermissions()
         {
             bool canManage =
@@ -192,6 +320,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // FORM LOAD
         // =====================================================
+
         private async void FormCategoryManagement_Load(
             object sender, EventArgs e)
         {
@@ -216,6 +345,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // TẢI DANH SÁCH
         // =====================================================
+
         private async Task LoadDataAsync()
         {
             try
@@ -226,9 +356,7 @@ namespace MiniSupermarket.WinForms
                     await _client.GetFromJsonAsync<List<CategoryDto>>(
                         "categories");
 
-                dgvCategories.DataSource = null;
-                dgvCategories.DataSource =
-                    categories ?? new List<CategoryDto>();
+                SetCategories(categories);
             }
             catch (HttpRequestException ex)
             {
@@ -254,8 +382,116 @@ namespace MiniSupermarket.WinForms
         }
 
         // =====================================================
+        // NHẬN DANH SÁCH VÀ HIỂN THỊ THEO TRANG
+        // =====================================================
+
+        private void SetCategories(List<CategoryDto>? categories)
+        {
+            _allCategories = categories ?? new List<CategoryDto>();
+
+            _currentPage = 1;
+
+            DisplayCurrentPage();
+        }
+
+        private void DisplayCurrentPage()
+        {
+            int totalItems = _allCategories.Count;
+
+            int totalPages = Math.Max(
+                1,
+                (int)Math.Ceiling(totalItems / (double)_pageSize));
+
+            if (_currentPage > totalPages)
+            {
+                _currentPage = totalPages;
+            }
+
+            if (_currentPage < 1)
+            {
+                _currentPage = 1;
+            }
+
+            var pageData = _allCategories
+                .Skip((_currentPage - 1) * _pageSize)
+                .Take(_pageSize)
+                .ToList();
+
+            dgvCategories.DataSource = null;
+            dgvCategories.DataSource = pageData;
+
+            dgvCategories.ClearSelection();
+
+            UpdatePaginationControls();
+        }
+
+        private void UpdatePaginationControls()
+        {
+            int totalItems = _allCategories.Count;
+
+            int totalPages = Math.Max(
+                1,
+                (int)Math.Ceiling(totalItems / (double)_pageSize));
+
+            int firstItem = totalItems == 0
+                ? 0
+                : (_currentPage - 1) * _pageSize + 1;
+
+            int lastItem = Math.Min(
+                _currentPage * _pageSize,
+                totalItems);
+
+            lblPageInfo.Text =
+                $"Trang {_currentPage}/{totalPages}   |   " +
+                $"{firstItem}-{lastItem} / {totalItems} danh mục";
+
+            btnPreviousPage.Enabled =
+                totalItems > 0 && _currentPage > 1;
+
+            btnNextPage.Enabled =
+                totalItems > 0 && _currentPage < totalPages;
+        }
+
+        private void btnPreviousPage_Click(object? sender, EventArgs e)
+        {
+            if (_currentPage > 1)
+            {
+                _currentPage--;
+                DisplayCurrentPage();
+            }
+        }
+
+        private void btnNextPage_Click(object? sender, EventArgs e)
+        {
+            int totalPages = Math.Max(
+                1,
+                (int)Math.Ceiling(
+                    _allCategories.Count / (double)_pageSize));
+
+            if (_currentPage < totalPages)
+            {
+                _currentPage++;
+                DisplayCurrentPage();
+            }
+        }
+
+        private void cboPageSize_SelectedIndexChanged(
+            object? sender, EventArgs e)
+        {
+            if (cboPageSize.SelectedItem == null)
+                return;
+
+            _pageSize = Convert.ToInt32(cboPageSize.SelectedItem);
+
+            _currentPage = 1;
+
+            DisplayCurrentPage();
+        }
+
+        // =====================================================
         // CHỌN DANH MỤC
         // =====================================================
+
         private void dgvCategories_CellClick(
             object sender, DataGridViewCellEventArgs e)
         {
@@ -268,6 +504,7 @@ namespace MiniSupermarket.WinForms
             {
                 txtId.Text = category.CategoryId.ToString();
                 txtCategoryName.Text = category.CategoryName;
+
                 txtDescription.Text =
                     category.Description ?? string.Empty;
             }
@@ -276,6 +513,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // THÊM DANH MỤC
         // =====================================================
+
         private async void btnAdd_Click(object sender, EventArgs e)
         {
             if (!CanManageCategories())
@@ -288,6 +526,7 @@ namespace MiniSupermarket.WinForms
                     "Cảnh báo",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
+
                 txtCategoryName.Focus();
                 return;
             }
@@ -330,6 +569,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // SỬA DANH MỤC
         // =====================================================
+
         private async void btnUpdate_Click(
             object sender, EventArgs e)
         {
@@ -353,6 +593,7 @@ namespace MiniSupermarket.WinForms
                     "Cảnh báo",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning);
+
                 txtCategoryName.Focus();
                 return;
             }
@@ -397,6 +638,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // XÓA DANH MỤC
         // =====================================================
+
         private async void btnDelete_Click(
             object sender, EventArgs e)
         {
@@ -456,6 +698,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // TÌM KIẾM
         // =====================================================
+
         private async void btnSearch_Click(
             object sender, EventArgs e)
         {
@@ -478,9 +721,7 @@ namespace MiniSupermarket.WinForms
                 var result =
                     await _client.GetFromJsonAsync<List<CategoryDto>>(url);
 
-                dgvCategories.DataSource = null;
-                dgvCategories.DataSource =
-                    result ?? new List<CategoryDto>();
+                SetCategories(result);
             }
             catch (Exception ex)
             {
@@ -495,6 +736,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // KIỂM TRA QUYỀN
         // =====================================================
+
         private bool CanManageCategories()
         {
             if (SessionManager.IsAdmin || SessionManager.IsWarehouse)
@@ -512,6 +754,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // XỬ LÝ LỖI API
         // =====================================================
+
         private async Task ShowApiErrorAsync(
             HttpResponseMessage response, string action)
         {
@@ -559,6 +802,7 @@ namespace MiniSupermarket.WinForms
         // =====================================================
         // XÓA Ô NHẬP
         // =====================================================
+
         private void ClearInputs()
         {
             txtId.Clear();

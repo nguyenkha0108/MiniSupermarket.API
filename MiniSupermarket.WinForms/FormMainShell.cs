@@ -1,7 +1,7 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
 namespace MiniSupermarket.WinForms
@@ -17,13 +17,15 @@ namespace MiniSupermarket.WinForms
         private Form? activeChild;
         private readonly FormLogin ownerLogin;
 
-        private static readonly Color Navy = Color.FromArgb(17, 24, 39);
-        private static readonly Color NavyLight = Color.FromArgb(30, 41, 59);
-        private static readonly Color Blue = Color.FromArgb(37, 99, 235);
-        private static readonly Color BlueHover = Color.FromArgb(29, 78, 216);
-        private static readonly Color PageBackground = Color.FromArgb(243, 246, 251);
-        private static readonly Color TextPrimary = Color.FromArgb(15, 23, 42);
-        private static readonly Color TextSecondary = Color.FromArgb(100, 116, 139);
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI FORM LOGIN
+        private static readonly Color DarkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private static readonly Color SidebarBackground = Color.FromArgb(15, 23, 42); // Slate 900
+        private static readonly Color CardBackground = Color.FromArgb(30, 41, 59);    // Slate 800 (Nền header/card)
+        private static readonly Color AccentColor = Color.FromArgb(168, 85, 247);     // Tím Violet hiện đại
+        private static readonly Color AccentHover = Color.FromArgb(147, 51, 234);     // Tím đậm khi hover
+        private static readonly Color NavHover = Color.FromArgb(51, 65, 85);          // Slate 700
+        private static readonly Color TextLight = Color.FromArgb(248, 250, 252);      // Chữ sáng
+        private static readonly Color TextMuted = Color.FromArgb(148, 163, 184);      // Chữ phụ
 
         public FormMainShell(FormLogin loginForm)
         {
@@ -48,61 +50,61 @@ namespace MiniSupermarket.WinForms
             StartPosition = FormStartPosition.CenterScreen;
             Size = new Size(1280, 760);
             MinimumSize = new Size(1000, 600);
-            BackColor = PageBackground;
+            BackColor = DarkBackground;
             Font = new Font("Segoe UI", 10F);
             AutoScaleMode = AutoScaleMode.Font;
 
-            // SIDEBAR
+            // 1. SIDEBAR (BẢNG ĐIỀU HƯỚNG TỐI CAO CẤP)
             panelSidebar.Dock = DockStyle.Left;
-            panelSidebar.Width = 245;
-            panelSidebar.BackColor = Navy;
+            panelSidebar.Width = 260;
+            panelSidebar.BackColor = SidebarBackground;
             panelSidebar.Padding = new Padding(12, 12, 12, 10);
 
             var logoPanel = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 76,
-                BackColor = Navy
+                Height = 80,
+                BackColor = SidebarBackground
             };
 
             var logo = new Label
             {
-                Text = "◆  KhaMiniMart",
+                Text = "⚡ KHA MINI MART",
                 Dock = DockStyle.Fill,
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 17F, FontStyle.Bold),
+                ForeColor = AccentColor,
+                Font = new Font("Segoe UI", 15F, FontStyle.Bold),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
             var logoLine = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 3,
-                BackColor = Blue
+                Height = 2,
+                BackColor = Color.FromArgb(51, 65, 85)
             };
 
             logoPanel.Controls.Add(logo);
             logoPanel.Controls.Add(logoLine);
             panelSidebar.Controls.Add(logoPanel);
 
-            // NÚT ĐĂNG XUẤT
+            // NÚT ĐĂNG XUẤT Ở CUỐI SIDEBAR
             var footer = new Panel
             {
                 Dock = DockStyle.Bottom,
-                Height = 58,
+                Height = 60,
                 Padding = new Padding(0, 8, 0, 0),
-                BackColor = Navy
+                BackColor = SidebarBackground
             };
 
-            var btnLogout = CreateMenuButton("Đăng xuất");
+            var btnLogout = CreateMenuButton("🚪 Đăng xuất");
             btnLogout.Dock = DockStyle.Fill;
-            btnLogout.ForeColor = Color.FromArgb(248, 113, 113);
+            btnLogout.ForeColor = Color.FromArgb(248, 113, 113); // Màu đỏ cảnh báo nổi bật
             btnLogout.Click += Logout_Click;
 
             footer.Controls.Add(btnLogout);
             panelSidebar.Controls.Add(footer);
 
-            // MENU - GIỮ NGUYÊN PHÂN QUYỀN
+            // MENU CHỨC NĂNG - GIỮ NGUYÊN PHÂN QUYỀN
             AddMenu("POS", "Bán hàng (POS)",
                 "BÁN HÀNG (POS)", Roles("Admin", "Cashier"));
 
@@ -124,10 +126,10 @@ namespace MiniSupermarket.WinForms
             AddMenu("Users", "Quản trị tài khoản",
                 "QUẢN TRỊ TÀI KHOẢN", Roles("Admin"));
 
-            // HEADER
+            // 2. HEADER PHÍA TRÊN
             panelTopHeader.Dock = DockStyle.Top;
             panelTopHeader.Height = 72;
-            panelTopHeader.BackColor = Color.White;
+            panelTopHeader.BackColor = CardBackground;
             panelTopHeader.Padding = new Padding(26, 0, 24, 0);
 
             lblTitle.Text = "BÀN LÀM VIỆC HỆ THỐNG";
@@ -135,20 +137,20 @@ namespace MiniSupermarket.WinForms
             lblTitle.Width = 520;
             lblTitle.TextAlign = ContentAlignment.MiddleLeft;
             lblTitle.Font = new Font("Segoe UI", 13F, FontStyle.Bold);
-            lblTitle.ForeColor = TextPrimary;
+            lblTitle.ForeColor = TextLight;
 
             lblUserInfo.Dock = DockStyle.Fill;
             lblUserInfo.TextAlign = ContentAlignment.MiddleRight;
-            lblUserInfo.ForeColor = TextSecondary;
+            lblUserInfo.ForeColor = TextMuted;
             lblUserInfo.Font = new Font("Segoe UI", 9.5F);
 
             panelTopHeader.Controls.Add(lblUserInfo);
             panelTopHeader.Controls.Add(lblTitle);
 
-            // VÙNG NỘI DUNG
+            // 3. VÙNG NỘI DUNG CHÍNH
             panelMainContent.Dock = DockStyle.Fill;
-            panelMainContent.BackColor = PageBackground;
-            panelMainContent.Padding = new Padding(18);
+            panelMainContent.BackColor = DarkBackground;
+            panelMainContent.Padding = new Padding(20);
 
             // THỨ TỰ DOCK
             Controls.Add(panelMainContent);
@@ -156,7 +158,7 @@ namespace MiniSupermarket.WinForms
             Controls.Add(panelSidebar);
 
             lblUserInfo.Text =
-                $"Nhân viên: {SessionManager.Username}   |   Vai trò: {SessionManager.Role}";
+                $"Nhân viên: {SessionManager.Username}    |    Vai trò: {SessionManager.Role}";
         }
 
         private static HashSet<string> Roles(params string[] roles)
@@ -172,7 +174,7 @@ namespace MiniSupermarket.WinForms
             string title,
             HashSet<string> allowedRoles)
         {
-            var button = CreateMenuButton(text);
+            var button = CreateMenuButton("  " + text);
 
             button.Dock = DockStyle.Top;
             button.Visible = allowedRoles.Contains(SessionManager.Role);
@@ -188,22 +190,22 @@ namespace MiniSupermarket.WinForms
         {
             var button = new Button
             {
-                Text = "   " + text,
-                Height = 48,
+                Text = text,
+                Height = 46,
                 FlatStyle = FlatStyle.Flat,
                 ForeColor = Color.FromArgb(226, 232, 240),
-                BackColor = Navy,
+                BackColor = SidebarBackground,
                 TextAlign = ContentAlignment.MiddleLeft,
-                Font = new Font("Segoe UI", 10F),
+                Font = new Font("Segoe UI Semibold", 10F),
                 Cursor = Cursors.Hand,
-                Padding = new Padding(8, 0, 0, 0),
+                Padding = new Padding(12, 0, 0, 0),
                 UseVisualStyleBackColor = false,
-                Margin = new Padding(0, 3, 0, 3)
+                Margin = new Padding(0, 4, 0, 4)
             };
 
             button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = NavyLight;
-            button.FlatAppearance.MouseDownBackColor = BlueHover;
+            button.FlatAppearance.MouseOverBackColor = NavHover;
+            button.FlatAppearance.MouseDownBackColor = AccentHover;
 
             return button;
         }
@@ -246,7 +248,6 @@ namespace MiniSupermarket.WinForms
 
         private void OpenScreen(string key, string title, Button selectedButton)
         {
-            // KIỂM TRA QUYỀN TRUY CẬP
             var allowed = key switch
             {
                 "POS" => SessionManager.IsAdmin || SessionManager.IsCashier,
@@ -277,19 +278,19 @@ namespace MiniSupermarket.WinForms
                 activeChild = null;
             }
 
-            // TRẠNG THÁI MENU
+            // ĐẶT LẠI TRẠNG THÁI MÀU MENU
             foreach (var btn in menuButtons.Values)
             {
-                btn.BackColor = Navy;
+                btn.BackColor = SidebarBackground;
                 btn.ForeColor = Color.FromArgb(226, 232, 240);
             }
 
-            selectedButton.BackColor = Blue;
+            // MENU ĐANG ĐƯỢC CHỌN (HIGHLIGHT MÀU TÍM VIOLET)
+            selectedButton.BackColor = AccentHover;
             selectedButton.ForeColor = Color.White;
 
             lblTitle.Text = title;
 
-            // MỞ CÁC FORM HIỆN CÓ
             if (key == "Category")
             {
                 ShowChild(new FormCategoryManagement());
@@ -342,7 +343,7 @@ namespace MiniSupermarket.WinForms
             child.TopLevel = false;
             child.FormBorderStyle = FormBorderStyle.None;
             child.Dock = DockStyle.Fill;
-            child.BackColor = PageBackground;
+            child.BackColor = DarkBackground;
             panelMainContent.Controls.Clear();
             panelMainContent.Controls.Add(child);
             child.Show();
@@ -367,18 +368,19 @@ namespace MiniSupermarket.WinForms
         }
     }
 
+    // MÀN HÌNH WORKSPACE TẠM THỜI GIAO DIỆN THẺ CARD HIỆN ĐẠI (DARK MODE)
     internal sealed class SimpleWorkspaceForm : Form
     {
         public SimpleWorkspaceForm(string title, string description)
         {
-            BackColor = Color.FromArgb(243, 246, 251);
+            BackColor = Color.FromArgb(15, 23, 42);
             Padding = new Padding(18);
 
             var card = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 210,
-                BackColor = Color.White,
+                BackColor = Color.FromArgb(30, 41, 59),
                 Padding = new Padding(28),
                 Margin = new Padding(10)
             };
@@ -389,14 +391,14 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Top,
                 Height = 52,
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(17, 24, 39)
+                ForeColor = Color.FromArgb(248, 250, 252)
             };
 
             var accent = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 3,
-                BackColor = Color.FromArgb(37, 99, 235)
+                BackColor = Color.FromArgb(168, 85, 247)
             };
 
             var message = new Label
@@ -404,7 +406,7 @@ namespace MiniSupermarket.WinForms
                 Text = description,
                 Dock = DockStyle.Fill,
                 Font = new Font("Segoe UI", 11F),
-                ForeColor = Color.FromArgb(71, 85, 105),
+                ForeColor = Color.FromArgb(148, 163, 184),
                 AutoSize = false,
                 Padding = new Padding(0, 12, 0, 0)
             };

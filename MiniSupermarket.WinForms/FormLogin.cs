@@ -1,6 +1,6 @@
-
 using System;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Windows.Forms;
@@ -15,14 +15,17 @@ namespace MiniSupermarket.WinForms
                 BaseAddress = new Uri("https://localhost:7044/api/")
             };
 
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
-        private readonly Color textPrimary = Color.FromArgb(15, 23, 42);
-        private readonly Color textSecondary = Color.FromArgb(100, 116, 139);
+        // BẢNG MÀU MỚI: Dark Mode cao cấp (Tông nền tối, điểm nhấn Tím Violet & Hồng Fuchsia)
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Nền chính tối sâu (Slate 900)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Nền thẻ Card nổi bật (Slate 800)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet hiện đại
+        private readonly Color accentHover = Color.FromArgb(147, 51, 234);    // Tím đậm hơn khi hover
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
 
         private Panel loginCard = null!;
         private Label lblStatus = null!;
+        private Button btnTogglePassword = null!;
 
         public FormLogin()
         {
@@ -35,156 +38,216 @@ namespace MiniSupermarket.WinForms
 
         private void BuildLoginInterface()
         {
-            // GIAO DIỆN CHÍNH
-            Text = "KhaMiniMart | Đăng nhập";
+            // GIAO DIỆN CHÍNH (DARK THEME)
+            Text = "KhaMiniMart | Đăng nhập hệ thống";
             StartPosition = FormStartPosition.CenterScreen;
-            MinimumSize = new Size(900, 600);
-            Size = new Size(1100, 700);
-            BackColor = background;
+            MinimumSize = new Size(950, 620);
+            Size = new Size(1150, 720);
+            BackColor = darkBackground;
             Font = new Font("Segoe UI", 10F);
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
 
-            // TẠO KHUNG ĐĂNG NHẬP
+            // KHUNG ĐĂNG NHẬP (CARD)
             loginCard = new Panel
             {
-                Size = new Size(430, 490),
-                BackColor = Color.White,
-                Padding = new Padding(35)
+                Size = new Size(460, 540),
+                BackColor = cardBackground,
+                Padding = new Padding(40)
             };
+            loginCard.Paint += LoginCard_Paint;
 
             Controls.Add(loginCard);
 
             // LOGO
             var lblLogo = new Label
             {
-                Text = "◆ KhaMiniMart",
+                Text = "⚡ KHA MINI MART",
                 Dock = DockStyle.Top,
-                Height = 55,
-                Font = new Font("Segoe UI", 21F, FontStyle.Bold),
-                ForeColor = blue,
+                Height = 45,
+                Font = new Font("Segoe UI", 16F, FontStyle.Bold),
+                ForeColor = accentColor,
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
             // TIÊU ĐỀ
             var lblWelcome = new Label
             {
-                Text = "ĐĂNG NHẬP HỆ THỐNG",
+                Text = "Đăng Nhập Quản Trị",
                 Dock = DockStyle.Top,
-                Height = 42,
-                Font = new Font("Segoe UI", 13F, FontStyle.Bold),
-                ForeColor = textPrimary,
+                Height = 35,
+                Font = new Font("Segoe UI", 13.5F, FontStyle.Bold),
+                ForeColor = textLight,
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
             // MÔ TẢ
             var lblDescription = new Label
             {
-                Text = "Quản lý cửa hàng bán lẻ thông minh",
+                Text = "Hệ thống quản lý siêu thị mini thông minh",
                 Dock = DockStyle.Top,
-                Height = 35,
+                Height = 30,
                 Font = new Font("Segoe UI", 9.5F),
-                ForeColor = textSecondary,
+                ForeColor = textMuted,
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
             // TÀI KHOẢN
             var lblUsername = new Label
             {
-                Text = "Tài khoản",
+                Text = "Tài khoản truy cập",
                 Dock = DockStyle.Top,
-                Height = 28,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = textPrimary,
+                Height = 25,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                ForeColor = textMuted,
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
             StyleInput(txtUsername);
             txtUsername.Dock = DockStyle.Top;
-            txtUsername.Height = 38;
+            txtUsername.Height = 40;
             txtUsername.Font = new Font("Segoe UI", 11F);
 
-            // MẬT KHẨU
+            // MẬT KHẨU & NÚT ẨN/HIỆN
             var lblPassword = new Label
             {
-                Text = "Mật khẩu",
+                Text = "Mật khẩu bảo mật",
                 Dock = DockStyle.Top,
-                Height = 28,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                ForeColor = textPrimary,
+                Height = 25,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                ForeColor = textMuted,
                 TextAlign = ContentAlignment.MiddleLeft
             };
 
+            var passwordPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 40,
+                BackColor = Color.FromArgb(51, 65, 85)
+            };
+
             StyleInput(txtPassword);
-            txtPassword.Dock = DockStyle.Top;
-            txtPassword.Height = 38;
+            txtPassword.BorderStyle = BorderStyle.None;
+            txtPassword.Location = new Point(14, 10);
+            txtPassword.Width = 330;
             txtPassword.Font = new Font("Segoe UI", 11F);
             txtPassword.UseSystemPasswordChar = true;
+
+            btnTogglePassword = new Button
+            {
+                Text = "👁",
+                Width = 35,
+                Height = 32,
+                Location = new Point(355, 4),
+                FlatStyle = FlatStyle.Flat,
+                Cursor = Cursors.Hand,
+                BackColor = Color.Transparent,
+                ForeColor = textLight,
+                Font = new Font("Segoe UI", 9.5F)
+            };
+            btnTogglePassword.FlatAppearance.BorderSize = 0;
+            btnTogglePassword.Click += (s, e) =>
+            {
+                txtPassword.UseSystemPasswordChar = !txtPassword.UseSystemPasswordChar;
+                btnTogglePassword.Text = txtPassword.UseSystemPasswordChar ? "👁" : "🔒";
+            };
+
+            passwordPanel.Controls.Add(txtPassword);
+            passwordPanel.Controls.Add(btnTogglePassword);
 
             // NÚT ĐĂNG NHẬP
             StyleLoginButton(btnLogin);
             btnLogin.Dock = DockStyle.Top;
-            btnLogin.Height = 46;
+            btnLogin.Height = 48;
             btnLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            btnLogin.Text = "ĐĂNG NHẬP";
+            btnLogin.Text = "TRUY CẬP HỆ THỐNG";
             btnLogin.Click -= btnLogin_Click;
             btnLogin.Click += btnLogin_Click;
 
             // TRẠNG THÁI
             lblStatus = new Label
             {
-                Text = "Vui lòng nhập tài khoản và mật khẩu.",
+                Text = "Vui lòng nhập thông tin xác thực.",
                 Dock = DockStyle.Top,
                 Height = 36,
-                ForeColor = textSecondary,
+                ForeColor = textMuted,
                 Font = new Font("Segoe UI", 9F),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
-            // SẮP XẾP CONTROL
+            // SẮP XẾP CONTROL TRONG CARD (Viết tường minh để tránh hoàn toàn lỗi cú pháp)
             loginCard.Controls.Clear();
 
             loginCard.Controls.Add(lblStatus);
             loginCard.Controls.Add(btnLogin);
 
-            loginCard.Controls.Add(new Panel { Height = 18, Dock = DockStyle.Top });
+            var spacer1 = new Panel();
+            spacer1.Height = 18;
+            spacer1.Dock = DockStyle.Top;
+            loginCard.Controls.Add(spacer1);
 
-            loginCard.Controls.Add(txtPassword);
+            loginCard.Controls.Add(passwordPanel);
             loginCard.Controls.Add(lblPassword);
 
-            loginCard.Controls.Add(new Panel { Height = 8, Dock = DockStyle.Top });
+            var spacer2 = new Panel();
+            spacer2.Height = 10;
+            spacer2.Dock = DockStyle.Top;
+            loginCard.Controls.Add(spacer2);
 
             loginCard.Controls.Add(txtUsername);
             loginCard.Controls.Add(lblUsername);
 
-            loginCard.Controls.Add(new Panel { Height = 14, Dock = DockStyle.Top });
+            var spacer3 = new Panel();
+            spacer3.Height = 14;
+            spacer3.Dock = DockStyle.Top;
+            loginCard.Controls.Add(spacer3);
 
             loginCard.Controls.Add(lblDescription);
             loginCard.Controls.Add(lblWelcome);
             loginCard.Controls.Add(lblLogo);
 
-            // DOCK TOP XẾP NGƯỢC THỨ TỰ THÊM CONTROL.
-            // Dùng BringToFront để logo nằm phía trên.
             lblLogo.BringToFront();
-
             // DÒNG BẢN QUYỀN
             var lblFooter = new Label
             {
-                Text = "KhaMiniMart © 2026 | Hệ thống quản lý siêu thị mini",
+                Text = "KhaMiniMart © 2026 • Secure Enterprise Portal",
                 Dock = DockStyle.Bottom,
                 Height = 35,
-                ForeColor = textSecondary,
+                ForeColor = textMuted,
                 Font = new Font("Segoe UI", 9F),
                 TextAlign = ContentAlignment.MiddleCenter
             };
 
             Controls.Add(lblFooter);
 
-            // CANH GIỮA KHUNG ĐĂNG NHẬP
+            // CANH GIỮA
             Resize += (_, _) => CenterLoginCard();
             CenterLoginCard();
 
             AcceptButton = btnLogin;
+        }
+
+        // Vẽ viền bo tròn nhẹ cho Card Dark Mode
+        private void LoginCard_Paint(object? sender, PaintEventArgs e)
+        {
+            e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+            Rectangle rect = new Rectangle(0, 0, loginCard.Width - 1, loginCard.Height - 1);
+            using (GraphicsPath path = GetRoundedRectanglePath(rect, 16))
+            {
+                e.Graphics.DrawPath(new Pen(Color.FromArgb(71, 85, 105), 1.5f), path);
+            }
+        }
+
+        private GraphicsPath GetRoundedRectanglePath(Rectangle rect, int radius)
+        {
+            GraphicsPath path = new GraphicsPath();
+            int diameter = radius * 2;
+            path.AddArc(rect.X, rect.Y, diameter, diameter, 180, 90);
+            path.AddArc(rect.Right - diameter, rect.Y, diameter, diameter, 270, 90);
+            path.AddArc(rect.Right - diameter, rect.Bottom - diameter, diameter, diameter, 0, 90);
+            path.AddArc(rect.X, rect.Bottom - diameter, diameter, diameter, 90, 90);
+            path.CloseFigure();
+            return path;
         }
 
         private void CenterLoginCard()
@@ -193,25 +256,23 @@ namespace MiniSupermarket.WinForms
                 return;
 
             loginCard.Left = (ClientSize.Width - loginCard.Width) / 2;
-            loginCard.Top = (ClientSize.Height - loginCard.Height) / 2 - 10;
+            loginCard.Top = (ClientSize.Height - loginCard.Height) / 2 - 15;
         }
 
         private static void StyleInput(Control input)
         {
-            input.BackColor = Color.FromArgb(248, 250, 252);
-            input.ForeColor = Color.FromArgb(15, 23, 42);
+            input.BackColor = Color.FromArgb(51, 65, 85); // Slate 700
+            input.ForeColor = Color.FromArgb(248, 250, 252);
         }
 
         private void StyleLoginButton(Button button)
         {
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor =
-                Color.FromArgb(29, 78, 216);
-            button.FlatAppearance.MouseDownBackColor =
-                Color.FromArgb(30, 64, 175);
+            button.FlatAppearance.MouseOverBackColor = accentHover;
+            button.FlatAppearance.MouseDownBackColor = Color.FromArgb(126, 34, 206);
 
-            button.BackColor = blue;
+            button.BackColor = accentColor;
             button.ForeColor = Color.White;
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
@@ -226,7 +287,7 @@ namespace MiniSupermarket.WinForms
                 string.IsNullOrWhiteSpace(password))
             {
                 lblStatus.Text = "Vui lòng nhập đầy đủ tài khoản và mật khẩu.";
-                lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                lblStatus.ForeColor = Color.FromArgb(248, 113, 113); // Màu đỏ sáng nổi bật trên nền tối
 
                 MessageBox.Show(
                     "Vui lòng nhập tài khoản và mật khẩu!",
@@ -246,9 +307,9 @@ namespace MiniSupermarket.WinForms
             try
             {
                 btnLogin.Enabled = false;
-                btnLogin.Text = "ĐANG ĐĂNG NHẬP...";
+                btnLogin.Text = "ĐANG XÁC THỰC...";
                 lblStatus.Text = "Đang kết nối đến hệ thống...";
-                lblStatus.ForeColor = textSecondary;
+                lblStatus.ForeColor = textMuted;
 
                 var response = await _client.PostAsJsonAsync(
                     "Auth/login",
@@ -257,7 +318,7 @@ namespace MiniSupermarket.WinForms
                 if (!response.IsSuccessStatusCode)
                 {
                     lblStatus.Text = "Đăng nhập thất bại. Kiểm tra lại thông tin.";
-                    lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                    lblStatus.ForeColor = Color.FromArgb(248, 113, 113);
 
                     MessageBox.Show(
                         "Sai tài khoản hoặc mật khẩu!",
@@ -275,7 +336,7 @@ namespace MiniSupermarket.WinForms
                     string.IsNullOrEmpty(result.Token))
                 {
                     lblStatus.Text = "API không trả về Token.";
-                    lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                    lblStatus.ForeColor = Color.FromArgb(248, 113, 113);
 
                     MessageBox.Show(
                         "API không trả về Token!",
@@ -307,7 +368,7 @@ namespace MiniSupermarket.WinForms
             catch (Exception ex)
             {
                 lblStatus.Text = "Không thể kết nối đến API.";
-                lblStatus.ForeColor = Color.FromArgb(220, 38, 38);
+                lblStatus.ForeColor = Color.FromArgb(248, 113, 113);
 
                 MessageBox.Show(
                     "Không thể kết nối đến API:\n\n" + ex.Message,
@@ -318,7 +379,7 @@ namespace MiniSupermarket.WinForms
             finally
             {
                 btnLogin.Enabled = true;
-                btnLogin.Text = "ĐĂNG NHẬP";
+                btnLogin.Text = "TRUY CẬP HỆ THỐNG";
             }
         }
 

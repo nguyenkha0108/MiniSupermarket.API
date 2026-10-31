@@ -1,5 +1,4 @@
-﻿
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Net.Http;
@@ -17,12 +16,16 @@ namespace MiniSupermarket.WinForms
             BaseAddress = new Uri("https://localhost:7044/api/")
         };
 
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
-        private readonly Color green = Color.FromArgb(22, 163, 74);
-        private readonly Color red = Color.FromArgb(220, 38, 38);
-        private readonly Color orange = Color.FromArgb(234, 88, 12);
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/panel)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+        private readonly Color btnGreen = Color.FromArgb(22, 163, 74);        // Xanh lá (Thêm)
+        private readonly Color btnOrange = Color.FromArgb(234, 88, 12);       // Cam (Sửa/Khóa)
+        private readonly Color btnRed = Color.FromArgb(220, 38, 38);          // Đỏ (Xóa)
 
         private DataGridView dgvUsers = null!;
         private TextBox txtKeyword = null!;
@@ -55,20 +58,21 @@ namespace MiniSupermarket.WinForms
         private void InitializeComponentCustom()
         {
             Text = "KhaMiniMart | Quản lý tài khoản";
-            BackColor = background;
-            ForeColor = Color.FromArgb(15, 23, 42);
+            BackColor = darkBackground;
+            ForeColor = textLight;
             Font = new Font("Segoe UI", 10F);
             WindowState = FormWindowState.Maximized;
             StartPosition = FormStartPosition.CenterScreen;
-            Padding = new Padding(10);
+            Padding = new Padding(15);
 
             var heading = new Label
             {
                 Text = "QUẢN LÝ TÀI KHOẢN",
                 Dock = DockStyle.Top,
-                Height = 40,
+                Height = 45,
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = navy
+                ForeColor = textLight,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             // Thanh tìm kiếm
@@ -76,7 +80,7 @@ namespace MiniSupermarket.WinForms
             {
                 Dock = DockStyle.Top,
                 Height = 65,
-                BackColor = background
+                BackColor = darkBackground
             };
 
             var lblSearch = new Label
@@ -84,27 +88,35 @@ namespace MiniSupermarket.WinForms
                 Text = "Tìm kiếm theo tên đăng nhập hoặc vai trò",
                 Dock = DockStyle.Top,
                 Height = 23,
-                ForeColor = Color.FromArgb(51, 65, 85)
+                ForeColor = textMuted,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
             };
 
             txtKeyword = new TextBox
             {
                 Dock = DockStyle.Left,
-                Width = 300
+                Width = 300,
+                MinimumSize = new Size(150, 32),
+                BackColor = inputBackground,
+                ForeColor = textLight
             };
 
             btnSearch = new Button
             {
                 Text = "Tìm kiếm",
                 Width = 100,
-                Dock = DockStyle.Left
+                Dock = DockStyle.Left,
+                Margin = new Padding(8, 0, 0, 0),
+                MinimumSize = new Size(100, 36)
             };
 
             btnLoad = new Button
             {
                 Text = "Tải lại",
                 Width = 90,
-                Dock = DockStyle.Left
+                Dock = DockStyle.Left,
+                Margin = new Padding(8, 0, 0, 0),
+                MinimumSize = new Size(90, 36)
             };
 
             btnSearch.Click += async (_, _) => await LoadUsersAsync();
@@ -117,7 +129,8 @@ namespace MiniSupermarket.WinForms
             var searchBox = new Panel
             {
                 Dock = DockStyle.Fill,
-                Height = 32
+                Height = 36,
+                BackColor = darkBackground
             };
 
             searchBox.Controls.Add(btnLoad);
@@ -131,18 +144,19 @@ namespace MiniSupermarket.WinForms
             var pnlRight = new Panel
             {
                 Dock = DockStyle.Right,
-                Width = 350,
-                BackColor = background,
-                Padding = new Padding(10, 0, 0, 0)
+                Width = 360,
+                BackColor = darkBackground,
+                Padding = new Padding(15, 0, 0, 0)
             };
 
             var gbDetail = new GroupBox
             {
                 Text = "Thông tin tài khoản",
                 Dock = DockStyle.Fill,
-                ForeColor = navy,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                Padding = new Padding(12)
+                ForeColor = textLight,
+                BackColor = cardBackground,
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
+                Padding = new Padding(15)
             };
 
             txtId = CreateReadOnlyField();
@@ -163,7 +177,10 @@ namespace MiniSupermarket.WinForms
                 Name = "cbRole",
                 Dock = DockStyle.Top,
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Margin = new Padding(0, 0, 0, 10)
+                BackColor = inputBackground,
+                ForeColor = textLight,
+                Margin = new Padding(0, 4, 0, 12),
+                Height = 28
             };
 
             cbRole.Items.AddRange(new object[]
@@ -183,7 +200,7 @@ namespace MiniSupermarket.WinForms
             var buttonLayout = new TableLayoutPanel
             {
                 Dock = DockStyle.Bottom,
-                Height = 105,
+                Height = 110,
                 ColumnCount = 2,
                 RowCount = 3
             };
@@ -225,7 +242,6 @@ namespace MiniSupermarket.WinForms
             gbDetail.Controls.Add(txtId);
             gbDetail.Controls.Add(lblId);
 
-            // Ẩn TextBox vai trò cũ, ComboBox được sử dụng thay thế
             pnlRight.Controls.Add(gbDetail);
 
             // Bảng tài khoản bên trái
@@ -278,7 +294,8 @@ namespace MiniSupermarket.WinForms
             var pnlCenter = new Panel
             {
                 Dock = DockStyle.Fill,
-                Padding = new Padding(0, 5, 5, 0)
+                Padding = new Padding(0, 5, 5, 0),
+                BackColor = darkBackground
             };
 
             pnlCenter.Controls.Add(dgvUsers);
@@ -288,13 +305,13 @@ namespace MiniSupermarket.WinForms
             Controls.Add(pnlSearch);
             Controls.Add(heading);
 
-            StyleActionButton(btnAdd, green);
-            StyleActionButton(btnUpdate, orange);
-            StyleActionButton(btnDelete, red);
-            StyleActionButton(btnReset, blue);
-            StyleActionButton(btnLock, orange);
-            StyleActionButton(btnLoad, blue);
-            StyleActionButton(btnSearch, blue);
+            StyleActionButton(btnAdd, btnGreen);
+            StyleActionButton(btnUpdate, btnOrange);
+            StyleActionButton(btnDelete, btnRed);
+            StyleActionButton(btnReset, accentColor);
+            StyleActionButton(btnLock, btnOrange);
+            StyleActionButton(btnLoad, accentColor);
+            StyleActionButton(btnSearch, accentColor);
 
             Load += async (_, _) => await LoadUsersAsync();
         }
@@ -305,8 +322,10 @@ namespace MiniSupermarket.WinForms
             {
                 Dock = DockStyle.Top,
                 ReadOnly = true,
-                BackColor = Color.WhiteSmoke,
-                Margin = new Padding(0, 0, 0, 10)
+                BackColor = Color.FromArgb(71, 85, 105),
+                ForeColor = textLight,
+                Margin = new Padding(0, 4, 0, 10),
+                Height = 28
             };
         }
 
@@ -316,16 +335,16 @@ namespace MiniSupermarket.WinForms
             {
                 Text = text,
                 Dock = DockStyle.Top,
-                Height = 23,
+                Height = 22,
                 Font = new Font("Segoe UI", 9.5F),
-                ForeColor = Color.FromArgb(51, 65, 85)
+                ForeColor = textMuted
             };
         }
 
         private void StyleDataGridView(DataGridView grid)
         {
             grid.Dock = DockStyle.Fill;
-            grid.BackgroundColor = Color.White;
+            grid.BackgroundColor = cardBackground;
             grid.BorderStyle = BorderStyle.None;
             grid.EnableHeadersVisualStyles = false;
             grid.RowHeadersVisible = false;
@@ -336,23 +355,23 @@ namespace MiniSupermarket.WinForms
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.MultiSelect = false;
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            grid.GridColor = Color.FromArgb(226, 232, 240);
-            grid.RowTemplate.Height = 38;
-            grid.ColumnHeadersHeight = 42;
+            grid.GridColor = Color.FromArgb(51, 65, 85);
+            grid.RowTemplate.Height = 40;
+            grid.ColumnHeadersHeight = 44;
 
-            grid.ColumnHeadersDefaultCellStyle.BackColor = navy;
-            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = textLight;
             grid.ColumnHeadersDefaultCellStyle.Font =
                 new Font("Segoe UI", 10F, FontStyle.Bold);
 
             grid.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
-            grid.DefaultCellStyle.ForeColor = Color.FromArgb(15, 23, 42);
-            grid.DefaultCellStyle.SelectionBackColor =
-                Color.FromArgb(219, 234, 254);
-            grid.DefaultCellStyle.SelectionForeColor =
-                Color.FromArgb(15, 23, 42);
+            grid.DefaultCellStyle.BackColor = cardBackground;
+            grid.DefaultCellStyle.ForeColor = textLight;
+            grid.DefaultCellStyle.SelectionBackColor = accentColor;
+            grid.DefaultCellStyle.SelectionForeColor = Color.White;
             grid.AlternatingRowsDefaultCellStyle.BackColor =
-                Color.FromArgb(248, 250, 252);
+                Color.FromArgb(35, 47, 68);
+            grid.AlternatingRowsDefaultCellStyle.ForeColor = textLight;
         }
 
         private void StyleActionButton(Button button, Color color)
@@ -361,9 +380,11 @@ namespace MiniSupermarket.WinForms
             button.ForeColor = Color.White;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
+            button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(color, 0.15F);
             button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
+            button.Height = 36;
         }
 
         private async Task LoadUsersAsync()
@@ -639,52 +660,65 @@ namespace MiniSupermarket.WinForms
                 MessageBoxIcon.Warning);
         }
 
-        private static string? Prompt(string message, string title)
+        private string? Prompt(string message, string title)
         {
             using var form = new Form
             {
                 Text = title,
                 Width = 400,
-                Height = 155,
+                Height = 160,
                 StartPosition = FormStartPosition.CenterParent,
                 FormBorderStyle = FormBorderStyle.FixedDialog,
                 MinimizeBox = false,
-                MaximizeBox = false
+                MaximizeBox = false,
+                BackColor = darkBackground,
+                ForeColor = textLight
             };
 
             var label = new Label
             {
                 Text = message,
-                Left = 12,
-                Top = 12,
-                Width = 360,
-                Height = 30
+                Left = 15,
+                Top = 15,
+                Width = 350,
+                Height = 25,
+                ForeColor = textMuted,
+                Font = new Font("Segoe UI", 9.5F)
             };
 
             var input = new TextBox
             {
-                Left = 12,
+                Left = 15,
                 Top = 45,
-                Width = 360
+                Width = 350,
+                Height = 28,
+                BackColor = inputBackground,
+                ForeColor = textLight,
+                Font = new Font("Segoe UI", 10F)
             };
 
             var ok = new Button
             {
                 Text = "Xác nhận",
-                Left = 195,
-                Top = 80,
-                Width = 85,
+                Left = 180,
+                Top = 85,
+                Width = 90,
+                Height = 32,
                 DialogResult = DialogResult.OK
             };
 
             var cancel = new Button
             {
                 Text = "Hủy",
-                Left = 287,
-                Top = 80,
-                Width = 85,
+                Left = 275,
+                Top = 85,
+                Width = 90,
+                Height = 32,
                 DialogResult = DialogResult.Cancel
             };
+
+            StyleActionButton(ok, accentColor);
+            StyleActionButton(cancel, Color.FromArgb(71, 85, 105));
 
             form.Controls.AddRange(new Control[] { label, input, ok, cancel });
             form.AcceptButton = ok;

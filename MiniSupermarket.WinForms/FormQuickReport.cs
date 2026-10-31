@@ -1,20 +1,43 @@
-﻿
-using System;
+﻿using System;
 using System.Drawing;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MiniSupermarket.WinForms
 {
     public partial class FormQuickReport : Form
     {
+        private static readonly HttpClient ApiClient = new()
+        {
+            BaseAddress = new Uri("https://localhost:7044/api/")
+        };
+
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/panel)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+
         private readonly DateTimePicker dtpReportDate = new();
         private readonly Label lblTotalOrders = new();
         private readonly Label lblTotalRevenue = new();
         private readonly Label lblBestSeller = new();
 
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
+        private Button? btnView;
+        private Label? lblStatus;
+
+        private sealed class QuickReportDto
+        {
+            public bool Success { get; set; }
+            public string Date { get; set; } = "";
+            public int TotalOrders { get; set; }
+            public decimal TotalRevenue { get; set; }
+            public string BestSeller { get; set; } = "Chưa có dữ liệu";
+        }
 
         public FormQuickReport()
         {
@@ -25,7 +48,8 @@ namespace MiniSupermarket.WinForms
         private void BuildReportUI()
         {
             Controls.Clear();
-            BackColor = background;
+
+            BackColor = darkBackground;
             Padding = new Padding(18);
             Font = new Font("Segoe UI", 10F);
 
@@ -35,7 +59,8 @@ namespace MiniSupermarket.WinForms
                 Font = new Font("Segoe UI", 19F, FontStyle.Bold),
                 Dock = DockStyle.Top,
                 Height = 45,
-                ForeColor = navy
+                ForeColor = textLight,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             var subtitle = new Label
@@ -43,14 +68,15 @@ namespace MiniSupermarket.WinForms
                 Text = "Theo dõi tình hình kinh doanh của KhaMiniMart",
                 Dock = DockStyle.Top,
                 Height = 32,
-                ForeColor = Color.FromArgb(100, 116, 139)
+                ForeColor = textMuted,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             var toolbar = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 75,
-                BackColor = Color.White,
+                BackColor = cardBackground,
                 Padding = new Padding(15)
             };
 
@@ -59,24 +85,30 @@ namespace MiniSupermarket.WinForms
                 Text = "Ngày báo cáo:",
                 AutoSize = true,
                 Location = new Point(15, 25),
-                ForeColor = navy
+                ForeColor = textMuted
             };
 
             dtpReportDate.Format = DateTimePickerFormat.Short;
             dtpReportDate.Width = 150;
             dtpReportDate.Location = new Point(125, 20);
             dtpReportDate.Font = new Font("Segoe UI", 10F);
+            dtpReportDate.CalendarForeColor = textLight;
+            dtpReportDate.CalendarMonthBackground = inputBackground;
 
-            var btnView = new Button
+            btnView = new Button
             {
                 Text = "Xem báo cáo",
                 Width = 140,
-                Height = 34,
+                Height = 36,
                 Location = new Point(295, 18)
             };
 
-            StyleButton(btnView, blue);
-            btnView.Click += (_, _) => ShowReport();
+            StyleButton(btnView, accentColor);
+
+            btnView.Click += async (_, _) =>
+            {
+                await LoadReportSafelyAsync();
+            };
 
             toolbar.Controls.Add(dateLabel);
             toolbar.Controls.Add(dtpReportDate);
@@ -89,46 +121,49 @@ namespace MiniSupermarket.WinForms
                 ColumnCount = 3,
                 RowCount = 1,
                 Padding = new Padding(0, 15, 0, 15),
-                BackColor = background
+                BackColor = darkBackground
             };
 
-            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.33F));
-            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.34F));
+            cards.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.33F));
+            cards.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.33F));
+            cards.ColumnStyles.Add(
+                new ColumnStyle(SizeType.Percent, 33.34F));
 
             cards.Controls.Add(
-                CreateCard("TỔNG SỐ HÓA ĐƠN", lblTotalOrders, "Chưa có dữ liệu"),
-                0, 0);
+                CreateCard("TỔNG SỐ HÓA ĐƠN", lblTotalOrders,
+                    "Chưa có dữ liệu"), 0, 0);
 
             cards.Controls.Add(
-                CreateCard("TỔNG DOANH THU", lblTotalRevenue, "Chưa có dữ liệu"),
-                1, 0);
+                CreateCard("TỔNG DOANH THU", lblTotalRevenue,
+                    "Chưa có dữ liệu"), 1, 0);
 
             cards.Controls.Add(
-                CreateCard("SẢN PHẨM BÁN CHẠY", lblBestSeller, "Chưa có dữ liệu"),
-                2, 0);
+                CreateCard("SẢN PHẨM BÁN CHẠY", lblBestSeller,
+                    "Chưa có dữ liệu"), 2, 0);
 
             var note = new Panel
             {
                 Dock = DockStyle.Top,
                 Height = 90,
-                BackColor = Color.White,
+                BackColor = cardBackground,
                 Padding = new Padding(18)
             };
 
-            var noteText = new Label
+            lblStatus = new Label
             {
                 Text =
-                    "LƯU Ý\n" +
-                    "Đây là giao diện báo cáo mẫu. Cần kết nối API thống kê " +
-                    "đơn hàng để hiển thị số liệu kinh doanh thực tế.",
+                    "BÁO CÁO DOANH THU\n" +
+                    "Chọn ngày và nhấn Xem báo cáo để tải số liệu từ hệ thống.",
                 Dock = DockStyle.Fill,
-                ForeColor = Color.FromArgb(71, 85, 105),
+                ForeColor = textMuted,
                 Font = new Font("Segoe UI", 10F)
             };
 
-            note.Controls.Add(noteText);
+            note.Controls.Add(lblStatus);
 
+            // Thứ tự thêm control để giữ bố cục giao diện
             Controls.Add(note);
             Controls.Add(cards);
             Controls.Add(toolbar);
@@ -144,7 +179,7 @@ namespace MiniSupermarket.WinForms
             var card = new Panel
             {
                 Dock = DockStyle.Fill,
-                BackColor = Color.White,
+                BackColor = cardBackground,
                 Margin = new Padding(0, 0, 12, 0),
                 Padding = new Padding(16)
             };
@@ -153,7 +188,7 @@ namespace MiniSupermarket.WinForms
             {
                 Dock = DockStyle.Left,
                 Width = 5,
-                BackColor = blue
+                BackColor = accentColor
             };
 
             var headingLabel = new Label
@@ -162,14 +197,15 @@ namespace MiniSupermarket.WinForms
                 Dock = DockStyle.Top,
                 Height = 38,
                 Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(71, 85, 105)
+                ForeColor = textMuted
             };
 
             valueLabel.Text = initialValue;
             valueLabel.Dock = DockStyle.Fill;
             valueLabel.Font = new Font("Segoe UI", 14F, FontStyle.Bold);
-            valueLabel.ForeColor = navy;
+            valueLabel.ForeColor = textLight;
             valueLabel.TextAlign = ContentAlignment.MiddleLeft;
+            valueLabel.AutoEllipsis = true;
 
             card.Controls.Add(valueLabel);
             card.Controls.Add(headingLabel);
@@ -185,23 +221,100 @@ namespace MiniSupermarket.WinForms
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
             button.FlatAppearance.MouseOverBackColor =
-                ControlPaint.Dark(color, 0.12F);
+                ControlPaint.Light(color, 0.15F);
             button.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
         }
 
-        private void ShowReport()
+        private async Task LoadReportSafelyAsync()
         {
-            MessageBox.Show(
-                "Ngày báo cáo: " +
-                dtpReportDate.Value.ToString("dd/MM/yyyy") +
-                "\n\nGiao diện báo cáo đã sẵn sàng." +
-                "\nĐể hiển thị số hóa đơn, doanh thu và sản phẩm bán chạy, " +
-                "cần kết nối API thống kê đơn hàng.",
-                "KhaMiniMart | Báo cáo doanh thu",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information);
+            if (btnView == null)
+                return;
+
+            btnView.Enabled = false;
+            btnView.Text = "Đang tải...";
+
+            try
+            {
+                await ShowReportAsync();
+            }
+            finally
+            {
+                btnView.Enabled = true;
+                btnView.Text = "Xem báo cáo";
+            }
+        }
+
+        private async Task ShowReportAsync()
+        {
+            try
+            {
+                string date =
+                    dtpReportDate.Value.ToString("yyyy-MM-dd");
+
+                var report =
+                    await ApiClient.GetFromJsonAsync<QuickReportDto>(
+                        $"Reports/quick-report?date={date}");
+
+                if (report == null || !report.Success)
+                {
+                    MessageBox.Show(
+                        "API không trả về dữ liệu báo cáo hợp lệ.",
+                        "KhaMiniMart",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning);
+                    return;
+                }
+
+                lblTotalOrders.Text =
+                    report.TotalOrders.ToString("N0");
+
+                lblTotalRevenue.Text =
+                    report.TotalRevenue.ToString("N0") + " VNĐ";
+
+                lblBestSeller.Text =
+                    report.TotalOrders == 0
+                        ? "Chưa có dữ liệu"
+                        : report.BestSeller;
+
+                if (lblStatus != null)
+                {
+                    lblStatus.Text =
+                        $"BÁO CÁO NGÀY {dtpReportDate.Value:dd/MM/yyyy}\n" +
+                        "Dữ liệu đã được tải từ hệ thống đơn hàng.";
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                if (lblStatus != null)
+                    lblStatus.Text = "Không thể kết nối API báo cáo.";
+
+                MessageBox.Show(
+                    "Không kết nối được API báo cáo.\n\n" +
+                    "Hãy kiểm tra API đang chạy tại " +
+                    "https://localhost:7044.\n\n" +
+                    ex.Message,
+                    "Lỗi kết nối API",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
+            catch (TaskCanceledException)
+            {
+                MessageBox.Show(
+                    "Yêu cầu báo cáo bị quá thời gian chờ.",
+                    "KhaMiniMart",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Không thể tải báo cáo:\n\n" + ex.Message,
+                    "Lỗi báo cáo",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+            }
         }
     }
 }

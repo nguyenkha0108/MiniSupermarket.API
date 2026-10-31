@@ -59,7 +59,7 @@ namespace MiniSupermarket.WinForms
             dgvCategories.BorderStyle = BorderStyle.None;
             dgvCategories.ColumnHeadersHeight = 29;
             dgvCategories.Dock = DockStyle.Fill;
-            dgvCategories.Location = new Point(9, 31);
+            dgvCategories.Location = new Point(8, 24);
             dgvCategories.Margin = new Padding(0);
             dgvCategories.MultiSelect = false;
             dgvCategories.Name = "dgvCategories";
@@ -67,57 +67,58 @@ namespace MiniSupermarket.WinForms
             dgvCategories.RowHeadersVisible = false;
             dgvCategories.RowHeadersWidth = 51;
             dgvCategories.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
-            dgvCategories.Size = new Size(790, 625);
+            dgvCategories.Size = new Size(691, 468);
             dgvCategories.TabIndex = 0;
             dgvCategories.CellClick += dgvCategories_CellClick;
             // 
             // txtId
             // 
             txtId.Dock = DockStyle.Fill;
-            txtId.Location = new Point(0, 39);
-            txtId.Margin = new Padding(0, 4, 0, 8);
+            txtId.Location = new Point(0, 29);
+            txtId.Margin = new Padding(0, 3, 0, 6);
             txtId.Name = "txtId";
             txtId.ReadOnly = true;
-            txtId.Size = new Size(385, 27);
+            txtId.Size = new Size(337, 23);
             txtId.TabIndex = 1;
             // 
             // txtCategoryName
             // 
             txtCategoryName.Dock = DockStyle.Fill;
-            txtCategoryName.Location = new Point(0, 122);
-            txtCategoryName.Margin = new Padding(0, 4, 0, 8);
+            txtCategoryName.Location = new Point(0, 91);
+            txtCategoryName.Margin = new Padding(0, 3, 0, 6);
             txtCategoryName.Name = "txtCategoryName";
-            txtCategoryName.Size = new Size(385, 27);
+            txtCategoryName.Size = new Size(337, 23);
             txtCategoryName.TabIndex = 3;
             // 
             // txtDescription
             // 
             txtDescription.Dock = DockStyle.Fill;
-            txtDescription.Location = new Point(0, 205);
-            txtDescription.Margin = new Padding(0, 4, 0, 0);
+            txtDescription.Location = new Point(0, 153);
+            txtDescription.Margin = new Padding(0, 3, 0, 0);
             txtDescription.Multiline = true;
             txtDescription.Name = "txtDescription";
             txtDescription.ScrollBars = ScrollBars.Vertical;
-            txtDescription.Size = new Size(385, 405);
+            txtDescription.Size = new Size(337, 303);
             txtDescription.TabIndex = 5;
             // 
             // txtKeyword
             // 
             txtKeyword.Dock = DockStyle.Fill;
-            txtKeyword.Location = new Point(2, 3);
-            txtKeyword.Margin = new Padding(2, 3, 2, 3);
+            txtKeyword.Location = new Point(2, 2);
+            txtKeyword.Margin = new Padding(2, 2, 2, 2);
             txtKeyword.Name = "txtKeyword";
             txtKeyword.PlaceholderText = "Nhập tên nhóm hàng cần tìm...";
-            txtKeyword.Size = new Size(956, 27);
+            txtKeyword.Size = new Size(835, 23);
             txtKeyword.TabIndex = 0;
             // 
             // btnLoad
             // 
             btnLoad.Dock = DockStyle.Fill;
-            btnLoad.Location = new Point(1100, 3);
-            btnLoad.MinimumSize = new Size(0, 40);
+            btnLoad.Location = new Point(962, 2);
+            btnLoad.Margin = new Padding(3, 2, 3, 2);
+            btnLoad.MinimumSize = new Size(0, 30);
             btnLoad.Name = "btnLoad";
-            btnLoad.Size = new Size(114, 41);
+            btnLoad.Size = new Size(99, 31);
             btnLoad.TabIndex = 2;
             btnLoad.Text = "Tải lại";
             btnLoad.UseVisualStyleBackColor = true;
@@ -126,10 +127,11 @@ namespace MiniSupermarket.WinForms
             // btnSearch
             // 
             btnSearch.Dock = DockStyle.Fill;
-            btnSearch.Location = new Point(963, 3);
-            btnSearch.MinimumSize = new Size(0, 40);
+            btnSearch.Location = new Point(842, 2);
+            btnSearch.Margin = new Padding(3, 2, 3, 2);
+            btnSearch.MinimumSize = new Size(0, 30);
             btnSearch.Name = "btnSearch";
-            btnSearch.Size = new Size(131, 41);
+            btnSearch.Size = new Size(114, 31);
             btnSearch.TabIndex = 1;
             btnSearch.Text = "Tìm kiếm";
             btnSearch.UseVisualStyleBackColor = true;
@@ -137,11 +139,11 @@ namespace MiniSupermarket.WinForms
             // 
             // btnAdd
             // 
-            btnAdd.Location = new Point(839, 8);
-            btnAdd.Margin = new Padding(6, 4, 0, 4);
-            btnAdd.MinimumSize = new Size(126, 51);
+            btnAdd.Location = new Point(733, 6);
+            btnAdd.Margin = new Padding(5, 3, 0, 3);
+            btnAdd.MinimumSize = new Size(110, 38);
             btnAdd.Name = "btnAdd";
-            btnAdd.Size = new Size(131, 51);
+            btnAdd.Size = new Size(115, 38);
             btnAdd.TabIndex = 2;
             btnAdd.Text = "Thêm mới";
             btnAdd.UseVisualStyleBackColor = true;
@@ -149,11 +151,11 @@ namespace MiniSupermarket.WinForms
             // 
             // btnUpdate
             // 
-            btnUpdate.Location = new Point(979, 8);
-            btnUpdate.Margin = new Padding(9, 4, 0, 4);
-            btnUpdate.MinimumSize = new Size(126, 51);
+            btnUpdate.Location = new Point(856, 6);
+            btnUpdate.Margin = new Padding(8, 3, 0, 3);
+            btnUpdate.MinimumSize = new Size(110, 38);
             btnUpdate.Name = "btnUpdate";
-            btnUpdate.Size = new Size(131, 51);
+            btnUpdate.Size = new Size(115, 38);
             btnUpdate.TabIndex = 1;
             btnUpdate.Text = "Cập nhật";
             btnUpdate.UseVisualStyleBackColor = true;
@@ -161,11 +163,11 @@ namespace MiniSupermarket.WinForms
             // 
             // btnDelete
             // 
-            btnDelete.Location = new Point(1119, 8);
-            btnDelete.Margin = new Padding(9, 4, 0, 4);
-            btnDelete.MinimumSize = new Size(114, 51);
+            btnDelete.Location = new Point(979, 6);
+            btnDelete.Margin = new Padding(8, 3, 0, 3);
+            btnDelete.MinimumSize = new Size(100, 38);
             btnDelete.Name = "btnDelete";
-            btnDelete.Size = new Size(120, 51);
+            btnDelete.Size = new Size(105, 38);
             btnDelete.TabIndex = 0;
             btnDelete.Text = "Xóa";
             btnDelete.UseVisualStyleBackColor = true;
@@ -177,7 +179,7 @@ namespace MiniSupermarket.WinForms
             label4.Location = new Point(0, 0);
             label4.Margin = new Padding(0);
             label4.Name = "label4";
-            label4.Size = new Size(385, 35);
+            label4.Size = new Size(337, 26);
             label4.TabIndex = 0;
             label4.Text = "Mã ID";
             label4.TextAlign = ContentAlignment.MiddleLeft;
@@ -185,10 +187,10 @@ namespace MiniSupermarket.WinForms
             // label5
             // 
             label5.Dock = DockStyle.Fill;
-            label5.Location = new Point(0, 83);
+            label5.Location = new Point(0, 62);
             label5.Margin = new Padding(0);
             label5.Name = "label5";
-            label5.Size = new Size(385, 35);
+            label5.Size = new Size(337, 26);
             label5.TabIndex = 2;
             label5.Text = "Tên nhóm hàng";
             label5.TextAlign = ContentAlignment.MiddleLeft;
@@ -196,10 +198,10 @@ namespace MiniSupermarket.WinForms
             // label6
             // 
             label6.Dock = DockStyle.Fill;
-            label6.Location = new Point(0, 166);
+            label6.Location = new Point(0, 124);
             label6.Margin = new Padding(0);
             label6.Name = "label6";
-            label6.Size = new Size(385, 35);
+            label6.Size = new Size(337, 26);
             label6.TabIndex = 4;
             label6.Text = "Mô tả chi tiết";
             label6.TextAlign = ContentAlignment.MiddleLeft;
@@ -208,11 +210,11 @@ namespace MiniSupermarket.WinForms
             // 
             groupBox1.Controls.Add(infoLayout);
             groupBox1.Dock = DockStyle.Fill;
-            groupBox1.Location = new Point(826, 0);
-            groupBox1.Margin = new Padding(9, 0, 0, 0);
+            groupBox1.Location = new Point(723, 0);
+            groupBox1.Margin = new Padding(8, 0, 0, 0);
             groupBox1.Name = "groupBox1";
-            groupBox1.Padding = new Padding(14, 24, 14, 13);
-            groupBox1.Size = new Size(413, 667);
+            groupBox1.Padding = new Padding(12, 18, 12, 10);
+            groupBox1.Size = new Size(361, 500);
             groupBox1.TabIndex = 1;
             groupBox1.TabStop = false;
             groupBox1.Text = "Thông tin nhóm hàng";
@@ -228,17 +230,17 @@ namespace MiniSupermarket.WinForms
             infoLayout.Controls.Add(label6, 0, 4);
             infoLayout.Controls.Add(txtDescription, 0, 5);
             infoLayout.Dock = DockStyle.Fill;
-            infoLayout.Location = new Point(14, 44);
+            infoLayout.Location = new Point(12, 34);
             infoLayout.Margin = new Padding(0);
             infoLayout.Name = "infoLayout";
             infoLayout.RowCount = 6;
-            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
-            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
-            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
-            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 35F));
+            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
+            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
+            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 36F));
+            infoLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
             infoLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            infoLayout.Size = new Size(385, 610);
+            infoLayout.Size = new Size(337, 456);
             infoLayout.TabIndex = 0;
             // 
             // groupBox2
@@ -246,10 +248,10 @@ namespace MiniSupermarket.WinForms
             groupBox2.Controls.Add(dgvCategories);
             groupBox2.Dock = DockStyle.Fill;
             groupBox2.Location = new Point(0, 0);
-            groupBox2.Margin = new Padding(0, 0, 9, 0);
+            groupBox2.Margin = new Padding(0, 0, 8, 0);
             groupBox2.Name = "groupBox2";
-            groupBox2.Padding = new Padding(9, 11, 9, 11);
-            groupBox2.Size = new Size(808, 667);
+            groupBox2.Padding = new Padding(8, 8, 8, 8);
+            groupBox2.Size = new Size(707, 500);
             groupBox2.TabIndex = 0;
             groupBox2.TabStop = false;
             groupBox2.Text = "Danh sách nhóm hàng";
@@ -258,11 +260,11 @@ namespace MiniSupermarket.WinForms
             // 
             groupBox3.Controls.Add(searchLayout);
             groupBox3.Dock = DockStyle.Fill;
-            groupBox3.Location = new Point(9, 11);
-            groupBox3.Margin = new Padding(0, 0, 0, 11);
+            groupBox3.Location = new Point(8, 8);
+            groupBox3.Margin = new Padding(0, 0, 0, 8);
             groupBox3.Name = "groupBox3";
-            groupBox3.Padding = new Padding(11, 24, 11, 7);
-            groupBox3.Size = new Size(1239, 98);
+            groupBox3.Padding = new Padding(10, 18, 10, 5);
+            groupBox3.Size = new Size(1084, 74);
             groupBox3.TabIndex = 0;
             groupBox3.TabStop = false;
             groupBox3.Text = "Tìm kiếm danh mục";
@@ -271,18 +273,18 @@ namespace MiniSupermarket.WinForms
             // 
             searchLayout.ColumnCount = 3;
             searchLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            searchLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 137F));
             searchLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 120F));
+            searchLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 105F));
             searchLayout.Controls.Add(txtKeyword, 0, 0);
             searchLayout.Controls.Add(btnSearch, 1, 0);
             searchLayout.Controls.Add(btnLoad, 2, 0);
             searchLayout.Dock = DockStyle.Fill;
-            searchLayout.Location = new Point(11, 44);
+            searchLayout.Location = new Point(10, 34);
             searchLayout.Margin = new Padding(0);
             searchLayout.Name = "searchLayout";
             searchLayout.RowCount = 1;
             searchLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            searchLayout.Size = new Size(1217, 47);
+            searchLayout.Size = new Size(1064, 35);
             searchLayout.TabIndex = 0;
             // 
             // mainLayout
@@ -296,12 +298,12 @@ namespace MiniSupermarket.WinForms
             mainLayout.Location = new Point(0, 0);
             mainLayout.Margin = new Padding(0);
             mainLayout.Name = "mainLayout";
-            mainLayout.Padding = new Padding(9, 11, 9, 11);
+            mainLayout.Padding = new Padding(8, 8, 8, 8);
             mainLayout.RowCount = 3;
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 109F));
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 82F));
             mainLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 69F));
-            mainLayout.Size = new Size(1257, 867);
+            mainLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
+            mainLayout.Size = new Size(1100, 650);
             mainLayout.TabIndex = 0;
             // 
             // contentLayout
@@ -312,12 +314,12 @@ namespace MiniSupermarket.WinForms
             contentLayout.Controls.Add(groupBox2, 0, 0);
             contentLayout.Controls.Add(groupBox1, 1, 0);
             contentLayout.Dock = DockStyle.Fill;
-            contentLayout.Location = new Point(9, 120);
+            contentLayout.Location = new Point(8, 90);
             contentLayout.Margin = new Padding(0);
             contentLayout.Name = "contentLayout";
             contentLayout.RowCount = 1;
             contentLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            contentLayout.Size = new Size(1239, 667);
+            contentLayout.Size = new Size(1084, 500);
             contentLayout.TabIndex = 1;
             // 
             // actionPanel
@@ -327,22 +329,21 @@ namespace MiniSupermarket.WinForms
             actionPanel.Controls.Add(btnAdd);
             actionPanel.Dock = DockStyle.Fill;
             actionPanel.FlowDirection = FlowDirection.RightToLeft;
-            actionPanel.Location = new Point(9, 787);
+            actionPanel.Location = new Point(8, 590);
             actionPanel.Margin = new Padding(0);
             actionPanel.Name = "actionPanel";
-            actionPanel.Padding = new Padding(0, 4, 0, 0);
-            actionPanel.Size = new Size(1239, 69);
+            actionPanel.Padding = new Padding(0, 3, 0, 0);
+            actionPanel.Size = new Size(1084, 52);
             actionPanel.TabIndex = 2;
             actionPanel.WrapContents = false;
             // 
             // FormCategoryManagement
             // 
-            AutoScaleDimensions = new SizeF(8F, 20F);
+            AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(1257, 867);
+            ClientSize = new Size(1100, 650);
             Controls.Add(mainLayout);
-            Margin = new Padding(3, 4, 3, 4);
-            MinimumSize = new Size(969, 651);
+            MinimumSize = new Size(850, 498);
             Name = "FormCategoryManagement";
             StartPosition = FormStartPosition.CenterScreen;
             Text = "KhaMiniMart | Quản lý danh mục";

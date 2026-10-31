@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
+using System.Text;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -16,12 +18,28 @@ namespace MiniSupermarket.WinForms
             BaseAddress = new Uri("https://localhost:7044/api/")
         };
 
-        private readonly Color navy = Color.FromArgb(17, 24, 39);
-        private readonly Color blue = Color.FromArgb(37, 99, 235);
-        private readonly Color background = Color.FromArgb(243, 246, 251);
-        private readonly Color green = Color.FromArgb(22, 163, 74);
-        private readonly Color red = Color.FromArgb(220, 38, 38);
-        private readonly Color orange = Color.FromArgb(234, 88, 12);
+        // BẢNG MÀU DARK MODE ĐỒNG BỘ VỚI HỆ THỐNG
+        private readonly Color darkBackground = Color.FromArgb(15, 23, 42);   // Slate 900 (Nền chính)
+        private readonly Color cardBackground = Color.FromArgb(30, 41, 59);   // Slate 800 (Nền khung/panel)
+        private readonly Color accentColor = Color.FromArgb(168, 85, 247);    // Tím Violet (Điểm nhấn chính)
+        private readonly Color accentHover = Color.FromArgb(147, 51, 234);    // Tím đậm khi hover
+        private readonly Color inputBackground = Color.FromArgb(51, 65, 85);  // Slate 700 (Ô nhập liệu)
+        private readonly Color textLight = Color.FromArgb(248, 250, 252);     // Chữ sáng (Slate 50)
+        private readonly Color textMuted = Color.FromArgb(148, 163, 184);     // Chữ phụ (Slate 400)
+        private readonly Color btnGreen = Color.FromArgb(22, 163, 74);        // Xanh lá (Thêm)
+        private readonly Color btnOrange = Color.FromArgb(234, 88, 12);       // Cam (Sửa)
+        private readonly Color btnRed = Color.FromArgb(220, 38, 38);          // Đỏ (Xóa)
+
+        // ================= PHÂN TRANG =================
+        private List<ProductDto> _allProducts = new();
+        private int _currentPage = 1;
+        private int _pageSize = 10;
+
+        private Label lblPageInfo = new();
+        private Button btnPreviousPage = new();
+        private Button btnNextPage = new();
+        private ComboBox cboPageSize = new();
+        private FlowLayoutPanel paginationPanel = new();
 
         // Các controls chính
         private DataGridView dgvProducts;
@@ -41,55 +59,57 @@ namespace MiniSupermarket.WinForms
         public FormProductManagement()
         {
             InitializeComponentCustom();
+            InitializePagination();
             SessionManager.AddAuthorizationHeader(_client);
             ApplyPermissions();
         }
 
-        // Khởi tạo giao diện tương tự FormCategoryManagement
         private void InitializeComponentCustom()
         {
             Text = "KhaMiniMart | Quản lý sản phẩm";
-            BackColor = background;
-            ForeColor = Color.FromArgb(15, 23, 42);
+            BackColor = darkBackground;
+            ForeColor = textLight;
             Font = new Font("Segoe UI", 10F);
             WindowState = FormWindowState.Maximized;
             StartPosition = FormStartPosition.CenterScreen;
-            Padding = new Padding(10);
+            Padding = new Padding(15);
 
             // 1. Tiêu đề đầu Form
             var heading = new Label
             {
                 Text = "QUẢN LÝ SẢN PHẨM",
                 Dock = DockStyle.Top,
-                Height = 40,
+                Height = 45,
                 Font = new Font("Segoe UI", 16F, FontStyle.Bold),
-                ForeColor = navy
+                ForeColor = textLight,
+                TextAlign = ContentAlignment.MiddleLeft
             };
 
             // 2. Thanh tìm kiếm (Panel Top)
             var pnlSearch = new Panel
             {
                 Dock = DockStyle.Top,
-                Height = 50,
-                BackColor = background
+                Height = 60,
+                BackColor = darkBackground
             };
 
             var lblSearch = new Label
             {
                 Text = "Tìm kiếm sản phẩm",
                 Dock = DockStyle.Top,
-                Height = 20,
-                ForeColor = Color.FromArgb(51, 65, 85)
+                Height = 22,
+                ForeColor = textMuted,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
             };
 
-            txtKeyword = new TextBox { Dock = DockStyle.Left, Width = 450 };
-            btnSearch = new Button { Text = "Tìm kiếm", Width = 95, Dock = DockStyle.Left, Margin = new Padding(5, 0, 0, 0) };
-            btnLoad = new Button { Text = "Tải lại", Width = 95, Dock = DockStyle.Left, Margin = new Padding(5, 0, 0, 0) };
+            txtKeyword = new TextBox { Dock = DockStyle.Left, Width = 450, MinimumSize = new Size(150, 32), BackColor = inputBackground, ForeColor = textLight };
+            btnSearch = new Button { Text = "Tìm kiếm", Width = 100, Dock = DockStyle.Left, Margin = new Padding(8, 0, 0, 0), MinimumSize = new Size(100, 36) };
+            btnLoad = new Button { Text = "Tải lại", Width = 100, Dock = DockStyle.Left, Margin = new Padding(8, 0, 0, 0), MinimumSize = new Size(100, 36) };
 
             btnSearch.Click += btnSearch_Click;
             btnLoad.Click += btnLoad_Click;
 
-            var pnlSearchBox = new Panel { Dock = DockStyle.Fill, Height = 30 };
+            var pnlSearchBox = new Panel { Dock = DockStyle.Fill, Height = 36 };
             pnlSearchBox.Controls.Add(btnLoad);
             pnlSearchBox.Controls.Add(btnSearch);
             pnlSearchBox.Controls.Add(txtKeyword);
@@ -101,38 +121,39 @@ namespace MiniSupermarket.WinForms
             var pnlRight = new Panel
             {
                 Dock = DockStyle.Right,
-                Width = 350,
-                BackColor = background,
-                Padding = new Padding(10, 0, 0, 0)
+                Width = 360,
+                BackColor = darkBackground,
+                Padding = new Padding(15, 0, 0, 0)
             };
 
             var gbDetail = new GroupBox
             {
                 Text = "Thông tin sản phẩm",
                 Dock = DockStyle.Fill,
-                ForeColor = navy,
-                Font = new Font("Segoe UI", 10F, FontStyle.Bold),
-                Padding = new Padding(10)
+                ForeColor = textLight,
+                BackColor = cardBackground,
+                Font = new Font("Segoe UI", 10.5F, FontStyle.Bold),
+                Padding = new Padding(15)
             };
 
             // Các trường nhập liệu bên phải
-            var lblId = new Label { Text = "Mã ID (Tự tăng)", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            txtId = new TextBox { Dock = DockStyle.Top, ReadOnly = true, BackColor = Color.WhiteSmoke, Margin = new Padding(0, 0, 0, 10) };
+            var lblId = new Label { Text = "Mã ID (Tự tăng)", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            txtId = new TextBox { Dock = DockStyle.Top, ReadOnly = true, BackColor = Color.FromArgb(71, 85, 105), ForeColor = textLight, Margin = new Padding(0, 4, 0, 10), Height = 28 };
 
-            var lblBarcode = new Label { Text = "Mã vạch", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            txtBarcode = new TextBox { Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, 10) };
+            var lblBarcode = new Label { Text = "Mã vạch", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            txtBarcode = new TextBox { Dock = DockStyle.Top, BackColor = inputBackground, ForeColor = textLight, Margin = new Padding(0, 4, 0, 10), Height = 28 };
 
-            var lblName = new Label { Text = "Tên sản phẩm", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            txtProductName = new TextBox { Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, 10) };
+            var lblName = new Label { Text = "Tên sản phẩm", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            txtProductName = new TextBox { Dock = DockStyle.Top, BackColor = inputBackground, ForeColor = textLight, Margin = new Padding(0, 4, 0, 10), Height = 28 };
 
-            var lblPrice = new Label { Text = "Giá bán (VNĐ)", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            txtPrice = new TextBox { Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, 10) };
+            var lblPrice = new Label { Text = "Giá bán (VNĐ)", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            txtPrice = new TextBox { Dock = DockStyle.Top, BackColor = inputBackground, ForeColor = textLight, Margin = new Padding(0, 4, 0, 10), Height = 28 };
 
-            var lblStock = new Label { Text = "Số lượng tồn kho", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            txtStock = new TextBox { Dock = DockStyle.Top, Margin = new Padding(0, 0, 0, 10) };
+            var lblStock = new Label { Text = "Số lượng tồn kho", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            txtStock = new TextBox { Dock = DockStyle.Top, BackColor = inputBackground, ForeColor = textLight, Margin = new Padding(0, 4, 0, 10), Height = 28 };
 
-            var lblCat = new Label { Text = "Danh mục", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F) };
-            cbCategory = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, Margin = new Padding(0, 0, 0, 10) };
+            var lblCat = new Label { Text = "Danh mục", Dock = DockStyle.Top, Font = new Font("Segoe UI", 9.5F), ForeColor = textMuted };
+            cbCategory = new ComboBox { Dock = DockStyle.Top, DropDownStyle = ComboBoxStyle.DropDownList, BackColor = inputBackground, ForeColor = textLight, Margin = new Padding(0, 4, 0, 15), Height = 28 };
 
             // Bảng chứa 3 nút Thêm, Cập nhật, Xóa ở dưới cùng của khung bên phải
             btnAdd = new Button { Text = "Thêm mới", Dock = DockStyle.Fill };
@@ -142,7 +163,7 @@ namespace MiniSupermarket.WinForms
             var tableButtons = new TableLayoutPanel
             {
                 Dock = DockStyle.Bottom,
-                Height = 40,
+                Height = 44,
                 ColumnCount = 3,
                 RowCount = 1
             };
@@ -178,7 +199,6 @@ namespace MiniSupermarket.WinForms
             dgvProducts = new DataGridView();
             StyleDataGridView(dgvProducts);
 
-            // Khai báo rõ ràng các cột cho DataGridView (đã bao gồm CategoryName để hiển thị tên danh mục)
             dgvProducts.AutoGenerateColumns = false;
             dgvProducts.Columns.Add(new DataGridViewTextBoxColumn { Name = "ProductId", HeaderText = "Mã SP", DataPropertyName = "ProductId", FillWeight = 50 });
             dgvProducts.Columns.Add(new DataGridViewTextBoxColumn { Name = "Barcode", HeaderText = "Mã vạch", DataPropertyName = "Barcode", FillWeight = 90 });
@@ -189,7 +209,7 @@ namespace MiniSupermarket.WinForms
 
             dgvProducts.CellClick += dgvProducts_CellClick;
 
-            var pnlCenter = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 5, 5, 0) };
+            var pnlCenter = new Panel { Dock = DockStyle.Fill, Padding = new Padding(0, 5, 5, 0), BackColor = darkBackground };
             pnlCenter.Controls.Add(dgvProducts);
 
             // Thêm tất cả vào Form chính
@@ -199,19 +219,109 @@ namespace MiniSupermarket.WinForms
             Controls.Add(heading);
 
             // Style nút bấm màu sắc chuẩn
-            StyleActionButton(btnAdd, green);
-            StyleActionButton(btnUpdate, orange);
-            StyleActionButton(btnDelete, red);
-            StyleActionButton(btnLoad, blue);
-            StyleActionButton(btnSearch, blue);
+            StyleActionButton(btnAdd, btnGreen);
+            StyleActionButton(btnUpdate, btnOrange);
+            StyleActionButton(btnDelete, btnRed);
+            StyleActionButton(btnLoad, accentColor);
+            StyleActionButton(btnSearch, accentColor);
 
             Load += FormProductManagement_Load;
+        }
+
+        private void InitializePagination()
+        {
+            paginationPanel = new FlowLayoutPanel
+            {
+                Name = "paginationPanel",
+                Dock = DockStyle.Bottom,
+                Height = 60,
+                Padding = new Padding(10),
+                Margin = Padding.Empty,
+                BackColor = cardBackground,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                AutoScroll = true
+            };
+
+            var lblPageSize = new Label
+            {
+                Text = "Số dòng/trang:",
+                AutoSize = true,
+                Margin = new Padding(5, 12, 5, 0),
+                ForeColor = textMuted
+            };
+
+            cboPageSize = new ComboBox
+            {
+                Name = "cboPageSize",
+                Width = 80,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Font = new Font("Segoe UI", 9.5F),
+                BackColor = inputBackground,
+                ForeColor = textLight,
+                Margin = new Padding(3, 8, 15, 0)
+            };
+
+            cboPageSize.Items.AddRange(new object[] { 5, 10, 20, 50 });
+            cboPageSize.SelectedItem = 10;
+
+            btnPreviousPage = new Button
+            {
+                Name = "btnPreviousPage",
+                Text = "◀ Trước",
+                Width = 100,
+                Height = 36,
+                Margin = new Padding(3, 5, 5, 0)
+            };
+
+            lblPageInfo = new Label
+            {
+                Name = "lblPageInfo",
+                Text = "Trang 0/0",
+                AutoSize = true,
+                MinimumSize = new Size(180, 34),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Margin = new Padding(5, 6, 5, 0),
+                ForeColor = textLight,
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold)
+            };
+
+            btnNextPage = new Button
+            {
+                Name = "btnNextPage",
+                Text = "Sau ▶",
+                Width = 100,
+                Height = 36,
+                Margin = new Padding(5, 5, 3, 0)
+            };
+
+            StyleActionButton(btnPreviousPage, accentColor);
+            StyleActionButton(btnNextPage, accentColor);
+
+            paginationPanel.Controls.Add(lblPageSize);
+            paginationPanel.Controls.Add(cboPageSize);
+            paginationPanel.Controls.Add(btnPreviousPage);
+            paginationPanel.Controls.Add(lblPageInfo);
+            paginationPanel.Controls.Add(btnNextPage);
+
+            Control parent = dgvProducts.Parent;
+            if (parent != null)
+            {
+                parent.Controls.Add(paginationPanel);
+                paginationPanel.BringToFront();
+            }
+
+            btnPreviousPage.Click += btnPreviousPage_Click;
+            btnNextPage.Click += btnNextPage_Click;
+            cboPageSize.SelectedIndexChanged += cboPageSize_SelectedIndexChanged;
+
+            UpdatePaginationControls();
         }
 
         private void StyleDataGridView(DataGridView grid)
         {
             grid.Dock = DockStyle.Fill;
-            grid.BackgroundColor = Color.White;
+            grid.BackgroundColor = cardBackground;
             grid.BorderStyle = BorderStyle.None;
             grid.EnableHeadersVisualStyles = false;
             grid.RowHeadersVisible = false;
@@ -222,19 +332,21 @@ namespace MiniSupermarket.WinForms
             grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
             grid.MultiSelect = false;
             grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
-            grid.GridColor = Color.FromArgb(226, 232, 240);
-            grid.RowTemplate.Height = 38;
-            grid.ColumnHeadersHeight = 42;
+            grid.GridColor = Color.FromArgb(51, 65, 85);
+            grid.RowTemplate.Height = 40;
+            grid.ColumnHeadersHeight = 44;
 
-            grid.ColumnHeadersDefaultCellStyle.BackColor = navy;
-            grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White;
+            grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(15, 23, 42);
+            grid.ColumnHeadersDefaultCellStyle.ForeColor = textLight;
             grid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 10F, FontStyle.Bold);
 
             grid.DefaultCellStyle.Font = new Font("Segoe UI", 10F);
-            grid.DefaultCellStyle.ForeColor = Color.FromArgb(15, 23, 42);
-            grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 234, 254);
-            grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(15, 23, 42);
-            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(248, 250, 252);
+            grid.DefaultCellStyle.BackColor = cardBackground;
+            grid.DefaultCellStyle.ForeColor = textLight;
+            grid.DefaultCellStyle.SelectionBackColor = accentColor;
+            grid.DefaultCellStyle.SelectionForeColor = Color.White;
+            grid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(35, 47, 68);
+            grid.AlternatingRowsDefaultCellStyle.ForeColor = textLight;
         }
 
         private void StyleActionButton(Button button, Color color)
@@ -243,8 +355,8 @@ namespace MiniSupermarket.WinForms
             button.ForeColor = Color.White;
             button.FlatStyle = FlatStyle.Flat;
             button.FlatAppearance.BorderSize = 0;
-            button.FlatAppearance.MouseOverBackColor = ControlPaint.Dark(color, 0.12F);
-            button.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            button.FlatAppearance.MouseOverBackColor = ControlPaint.Light(color, 0.15F);
+            button.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
             button.Cursor = Cursors.Hand;
             button.UseVisualStyleBackColor = false;
         }
@@ -299,7 +411,6 @@ namespace MiniSupermarket.WinForms
                     {
                         string categoryName = string.Empty;
 
-                        // Bóc tách tên danh mục từ object lồng nhau 'category'
                         if (product.TryGetProperty("category", out var categoryObj) && categoryObj.ValueKind == JsonValueKind.Object)
                         {
                             if (categoryObj.TryGetProperty("categoryName", out var catNameProp))
@@ -321,14 +432,83 @@ namespace MiniSupermarket.WinForms
                     }
                 }
 
-                dgvProducts.DataSource = null;
-                dgvProducts.DataSource = list;
+                SetProducts(list);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Không thể tải danh sách sản phẩm:\n" + ex.Message, "Lỗi kết nối", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
+
+        private void SetProducts(List<ProductDto>? products)
+        {
+            _allProducts = products ?? new List<ProductDto>();
+            _currentPage = 1;
+            DisplayCurrentPage();
+        }
+
+        private void DisplayCurrentPage()
+        {
+            int totalItems = _allProducts.Count;
+            int totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)_pageSize));
+
+            if (_currentPage > totalPages) _currentPage = totalPages;
+            if (_currentPage < 1) _currentPage = 1;
+
+            var pageData = _allProducts
+                .Skip((_currentPage - 1) * _pageSize)
+                .Take(_pageSize)
+                .ToList();
+
+            dgvProducts.DataSource = null;
+            dgvProducts.DataSource = pageData;
+            dgvProducts.ClearSelection();
+
+            UpdatePaginationControls();
+        }
+
+        private void UpdatePaginationControls()
+        {
+            int totalItems = _allProducts.Count;
+            int totalPages = Math.Max(1, (int)Math.Ceiling(totalItems / (double)_pageSize));
+
+            int firstItem = totalItems == 0 ? 0 : (_currentPage - 1) * _pageSize + 1;
+            int lastItem = Math.Min(_currentPage * _pageSize, totalItems);
+
+            lblPageInfo.Text = $"Trang {_currentPage}/{totalPages}   |   {firstItem}-{lastItem} / {totalItems} sản phẩm";
+
+            btnPreviousPage.Enabled = totalItems > 0 && _currentPage > 1;
+            btnNextPage.Enabled = totalItems > 0 && _currentPage < totalPages;
+        }
+
+        private void btnPreviousPage_Click(object? sender, EventArgs e)
+        {
+            if (_currentPage > 1)
+            {
+                _currentPage--;
+                DisplayCurrentPage();
+            }
+        }
+
+        private void btnNextPage_Click(object? sender, EventArgs e)
+        {
+            int totalPages = Math.Max(1, (int)Math.Ceiling(_allProducts.Count / (double)_pageSize));
+            if (_currentPage < totalPages)
+            {
+                _currentPage++;
+                DisplayCurrentPage();
+            }
+        }
+
+        private void cboPageSize_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            if (cboPageSize.SelectedItem == null) return;
+
+            _pageSize = Convert.ToInt32(cboPageSize.SelectedItem);
+            _currentPage = 1;
+            DisplayCurrentPage();
+        }
+
         private async void btnLoad_Click(object sender, EventArgs e)
         {
             txtKeyword.Clear();
@@ -483,8 +663,7 @@ namespace MiniSupermarket.WinForms
             {
                 SessionManager.AddAuthorizationHeader(_client);
                 var result = await _client.GetFromJsonAsync<List<ProductDto>>($"products/search?keyword={Uri.EscapeDataString(keyword)}");
-                dgvProducts.DataSource = null;
-                dgvProducts.DataSource = result ?? new List<ProductDto>();
+                SetProducts(result);
             }
             catch (Exception ex)
             {
